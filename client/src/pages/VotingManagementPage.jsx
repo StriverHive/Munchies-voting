@@ -47,6 +47,7 @@ import {
 import axios from "axios";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -99,7 +100,7 @@ const VotingManagementPage = () => {
   const [sendModeSelection, setSendModeSelection] = useState("all"); // "all" | "selected" | "notifyWinners"
   const [selectedInviteEmployeeIds, setSelectedInviteEmployeeIds] = useState([]);
 
-  const API_BASE = "http://localhost:5000/api";
+  const API_BASE = API_BASE_URL;
 
   const fetchLocations = async () => {
     try {

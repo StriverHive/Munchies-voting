@@ -28,6 +28,7 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -47,7 +48,7 @@ const VotingReportPage = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `http://localhost:5000/api/votes/${voteId}/report`
+        `${API_BASE_URL}/votes/${voteId}/report`
       );
       setReportData(res.data);
     } catch (error) {
@@ -91,7 +92,7 @@ const VotingReportPage = () => {
       setVotersModalLoading(true);
 
       const res = await axios.get(
-        `http://localhost:5000/api/votes/${voteId}/voters`
+        `${API_BASE_URL}/votes/${voteId}/voters`
       );
       setVoterDetails(res.data.voters || []);
     } catch (error) {

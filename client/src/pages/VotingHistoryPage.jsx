@@ -30,6 +30,7 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -46,7 +47,7 @@ const VotingHistoryPage = () => {
   const [currentWinnerVote, setCurrentWinnerVote] = useState(null);
   const [winnerData, setWinnerData] = useState(null);
 
-  const API_BASE = "http://localhost:5000/api";
+  const API_BASE = API_BASE_URL;
 
   const fetchVotes = async () => {
     try {

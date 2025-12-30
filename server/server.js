@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 const connectDB = require("./config/db");
 
 // Load environment variables
@@ -16,22 +17,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "../client/build")));
+
+// API Routes
 const authRoutes = require("./routes/authRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
 const voteRoutes = require("./routes/voteRoutes");
-const emailTestRoutes = require("./routes/emailTestRoutes"); // ✅ NEW
+const emailTestRoutes = require("./routes/emailTestRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/votes", voteRoutes);
-app.use("/api/test-email", emailTestRoutes); // ✅ NEW
+app.use("/api/test-email", emailTestRoutes);
 
-// Test route
-app.get("/", (req, res) => {
-  res.send("Voting System API is running");
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/build/index.html"));
 });
 
 // Start server

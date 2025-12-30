@@ -19,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -51,7 +52,7 @@ const InviteVotePage = () => {
         setInviteError(null);
 
         const res = await axios.get(
-          `http://localhost:5000/api/votes/${voteId}/invite/${token}`
+          `${API_BASE_URL}/votes/${voteId}/invite/${token}`
         );
 
         console.log("Invite details response:", res.data);
@@ -120,7 +121,7 @@ const InviteVotePage = () => {
     try {
       setSubmitting(true);
       const res = await axios.post(
-        `http://localhost:5000/api/votes/${voteId}/invite/${token}/cast`,
+        `${API_BASE_URL}/votes/${voteId}/invite/${token}/cast`,
         {
           nomineeIds: selectedNomineeIds,
         }

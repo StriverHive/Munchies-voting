@@ -4,6 +4,7 @@ import { Card, Form, Input, Button, Typography, message, Space, Divider } from "
 import { MailOutlined, LockOutlined, LoginOutlined, UserOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -16,7 +17,7 @@ const LoginPage = ({ onLoginSuccess }) => {
     try {
       setLoading(true);
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API_BASE_URL}/auth/login`,
         values
       );
 

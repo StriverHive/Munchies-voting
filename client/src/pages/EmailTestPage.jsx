@@ -12,6 +12,7 @@ import {
 import axios from "axios";
 import { ArrowLeftOutlined, MailOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -30,7 +31,7 @@ const EmailTestPage = () => {
       }
 
       const response = await axios.post(
-        "http://localhost:5000/api/test-email/send",
+        `${API_BASE_URL}/test-email/send`,
         payload
       );
 

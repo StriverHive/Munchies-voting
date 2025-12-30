@@ -10,6 +10,7 @@ import {
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -24,7 +25,7 @@ const OfficialWinnersPage = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `http://localhost:5000/api/votes/${voteId}/official-winners`
+        `${API_BASE_URL}/votes/${voteId}/official-winners`
       );
       setData(res.data);
     } catch (error) {

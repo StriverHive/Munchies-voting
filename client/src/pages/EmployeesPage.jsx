@@ -44,7 +44,9 @@ const { TabPane } = Tabs;
 const { Search } = Input;
 const { Dragger } = Upload;
 
-const API_BASE = "http://localhost:5000/api";
+import API_BASE_URL from "../config/api";
+
+const API_BASE = API_BASE_URL;
 
 const EmployeesPage = () => {
   const navigate = useNavigate();

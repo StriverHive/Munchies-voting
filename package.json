@@ -1,0 +1,22 @@
+{
+  "name": "voting-app",
+  "version": "1.0.0",
+  "description": "Voting System App - Full Stack Application",
+  "main": "server/server.js",
+  "scripts": {
+    "install-server": "cd server && npm install",
+    "install-client": "cd client && npm install",
+    "install-all": "npm run install-server && npm run install-client",
+    "build": "cd client && npm install && npm run build",
+    "start": "cd server && npm install && node server.js",
+    "dev": "cd server && npm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}
+

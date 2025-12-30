@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import API_BASE_URL from "../config/api";
 
 const LocationsPage = () => {
   const [locations, setLocations] = useState([]);
@@ -32,7 +33,7 @@ const LocationsPage = () => {
   const fetchLocations = async () => {
     try {
       setLoadingTable(true);
-      const res = await fetch("http://localhost:5000/api/locations");
+      const res = await fetch(`${API_BASE_URL}/locations`);
       const data = await res.json();
       setLocations(data.locations || []);
     } catch (error) {
@@ -80,8 +81,8 @@ const LocationsPage = () => {
     try {
       setSavingLocation(true);
       const url = editingLocation
-        ? `http://localhost:5000/api/locations/${editingLocation._id}`
-        : "http://localhost:5000/api/locations";
+        ? `${API_BASE_URL}/locations/${editingLocation._id}`
+        : `${API_BASE_URL}/locations`;
 
       const res = await fetch(url, {
         method: editingLocation ? "PUT" : "POST",
@@ -151,7 +152,7 @@ const LocationsPage = () => {
       setDeleteLoading(true);
 
       // Verify password
-      const loginRes = await fetch("http://localhost:5000/api/auth/login", {
+      const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -168,7 +169,7 @@ const LocationsPage = () => {
 
       // Delete location
       const deleteRes = await fetch(
-        `http://localhost:5000/api/locations/${locationToDelete._id}`,
+        `${API_BASE_URL}/locations/${locationToDelete._id}`,
         { method: "DELETE" }
       );
 
