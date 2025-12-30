@@ -23,11 +23,10 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { Radio } from "antd";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
-
-import API_BASE_URL from "../config/api";
 
 const API_BASE = API_BASE_URL;
 

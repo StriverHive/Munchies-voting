@@ -37,14 +37,13 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
 const { Search } = Input;
 const { Dragger } = Upload;
-
-import API_BASE_URL from "../config/api";
 
 const API_BASE = API_BASE_URL;
 
