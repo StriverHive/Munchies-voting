@@ -318,9 +318,13 @@ const bulkCreateEmployees = async (req, res) => {
 
     const allCodes = Array.from(allCodesSet);
 
-    const locations = await Location.find({
-      code: { $in: allCodes },
-    }).select("_id code");
+    // Case-insensitive lookup: build regex patterns for each code
+    const codeRegexes = allCodes.map((c) => new RegExp(`^${c}$`, "i"));
+    const locations = allCodes.length > 0
+      ? await Location.find({
+          $or: codeRegexes.map((regex) => ({ code: regex })),
+        }).select("_id code")
+      : [];
 
     const codeToId = new Map();
     locations.forEach((loc) => {
@@ -587,9 +591,13 @@ const batchUpdateEmployees = async (req, res) => {
 
     const allCodes = Array.from(allCodesSet);
 
-    const locations = await Location.find({
-      code: { $in: allCodes },
-    }).select("_id code");
+    // Case-insensitive lookup: build regex patterns for each code
+    const codeRegexes = allCodes.map((c) => new RegExp(`^${c}$`, "i"));
+    const locations = allCodes.length > 0
+      ? await Location.find({
+          $or: codeRegexes.map((regex) => ({ code: regex })),
+        }).select("_id code")
+      : [];
 
     const codeToId = new Map();
     locations.forEach((loc) => {

@@ -51,38 +51,42 @@ const PublicShell = ({ children, maxWidth = 480 }) => (
       minHeight: "100vh",
       display: "flex",
       flexDirection: "column",
-      background: "#f5f7fa",
+      background: "#f8fafc",
+      position: "relative",
     }}
   >
     <Header
       style={{
-        background: "#001529",
-        padding: "0 16px",
+        background: "#ffffff",
+        borderBottom: "1px solid #e2e8f0",
+        padding: "0 24px",
         display: "flex",
         alignItems: "center",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+        height: 64,
       }}
     >
       <Title
         level={4}
         style={{
-          color: "#fff",
+          color: "#1e293b",
           margin: 0,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
+          fontWeight: 600,
+          fontSize: 18,
         }}
       >
-        Voting System
+        Munchies Voting System
       </Title>
     </Header>
 
     <Content
       style={{
-        padding: "24px 16px",
+        padding: "40px 16px",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         flex: 1,
+        background: "#f8fafc",
       }}
     >
       <div
@@ -98,12 +102,14 @@ const PublicShell = ({ children, maxWidth = 480 }) => (
     <Footer
       style={{
         textAlign: "center",
-        padding: "12px 8px",
-        fontSize: 12,
+        padding: "16px 8px",
+        fontSize: 13,
         background: "#ffffff",
+        borderTop: "1px solid #e2e8f0",
+        color: "#64748b",
       }}
     >
-      Voting System © {new Date().getFullYear()}
+      Munchies Voting System © {new Date().getFullYear()}
     </Footer>
   </Layout>
 );
@@ -197,46 +203,53 @@ const AuthedShell = ({ children, selectedKey, user, onLogout }) => {
         collapsedWidth={70}
         style={{
           background: "#ffffff",
-          borderRight: "1px solid #f0f0f0",
+          borderRight: "1px solid #e2e8f0",
+          boxShadow: "1px 0 3px rgba(0, 0, 0, 0.05)",
         }}
       >
         {/* Munchies logo at top of sidebar */}
-          {/* Munchies logo at top of sidebar */}
-  <div
-    style={{
-      height: 90, // was 64
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderBottom: "1px solid #f0f0f0",
-    }}
-  >
-    <div
-      style={{
-        width: 200,          // was 40
-        height: 100,          // was 40
-        borderRadius: 25,    // a bit rounder
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#ffffff",
-        cursor: "pointer",
-      }}
-      onClick={() => navigate("/dashboard")}
-    >
-      <img
-        src="/munchies-logo.png"
-        alt="Munchies Voting App"
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-        }}
-      />
-    </div>
-  </div>
-
+        <div
+          style={{
+            height: 90,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderBottom: "1px solid #e2e8f0",
+            padding: "12px",
+          }}
+        >
+          <div
+            style={{
+              width: 180,
+              height: 80,
+              borderRadius: 12,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ffffff",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() => navigate("/dashboard")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.8";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
+            }}
+          >
+            <img
+              src="/munchies-logo.png"
+              alt="Munchies Voting App"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+            />
+          </div>
+        </div>
 
         <Menu
           mode="inline"
@@ -245,7 +258,8 @@ const AuthedShell = ({ children, selectedKey, user, onLogout }) => {
           items={menuItems}
           style={{
             borderRight: 0,
-            paddingTop: 8,
+            paddingTop: 12,
+            background: "#ffffff",
           }}
         />
       </Sider>
@@ -286,17 +300,17 @@ const AuthedShell = ({ children, selectedKey, user, onLogout }) => {
             >
               <span
                 style={{
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: 600,
-                  color: "#111827",
+                  color: "#1e293b",
                 }}
               >
                 Voting System
               </span>
               <span
                 style={{
-                  fontSize: 20,
-                  color: "#2c1a3cff",
+                  fontSize: 14,
+                  color: "#64748b",
                 }}
               >
                 Manage locations, employees and voting sessions

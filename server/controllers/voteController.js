@@ -2568,6 +2568,226 @@ const sendWinnerSummaryToLocation = async (req, res) => {
   }
 };
 
+/* -----------------------------
+   POST /api/votes/export-csv
+   Export voting data as CSV
+   Supports multiple votes, two modes:
+   - full: detailed breakdown with voter participation
+   - summary: winners only summary
+   ----------------------------- */
+const exportVotesCSV = async (req, res) => {
+  try {
+    const { voteIds, exportType } = req.body;
+    // exportType: "full" | "summary" | "both"
+
+    if (!voteIds || !Array.isArray(voteIds) || voteIds.length === 0) {
+      return res.status(400).json({
+        message: "At least one vote ID is required",
+      });
+    }
+
+    const validExportTypes = ["full", "summary", "both"];
+    const type = validExportTypes.includes(exportType) ? exportType : "both";
+
+    // Fetch all votes with populated data
+    const votes = await Vote.find({ _id: { $in: voteIds } })
+      .populate("locations", "name code")
+      .populate("voters", "firstName lastName employeeId locations")
+      .populate("nominees", "firstName lastName employeeId locations")
+      .populate({
+        path: "winners.location",
+        select: "name code",
+      })
+      .populate({
+        path: "winners.employee",
+        select: "firstName lastName employeeId",
+      })
+      .lean();
+
+    if (votes.length === 0) {
+      return res.status(404).json({
+        message: "No votes found with the provided IDs",
+      });
+    }
+
+    // Fetch all vote casts for these votes
+    const voteCasts = await VoteCast.find({ vote: { $in: voteIds } })
+      .populate("voter", "firstName lastName employeeId")
+      .populate("nominees", "firstName lastName employeeId")
+      .lean();
+
+    // Group vote casts by vote ID
+    const voteCastsByVoteId = {};
+    voteCasts.forEach((cast) => {
+      const voteIdStr = String(cast.vote);
+      if (!voteCastsByVoteId[voteIdStr]) {
+        voteCastsByVoteId[voteIdStr] = [];
+      }
+      voteCastsByVoteId[voteIdStr].push(cast);
+    });
+
+    // UK date/time formatter
+    const formatDateTimeUK = (date) => {
+      if (!date) return "";
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
+    };
+
+    const formatDateUK = (date) => {
+      if (!date) return "";
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    // Escape CSV values
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return "";
+      const str = String(value);
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    let csvContent = "";
+
+    // ===== FULL DATA SECTION =====
+    if (type === "full" || type === "both") {
+      csvContent += "=== FULL VOTING DATA ===\n\n";
+
+      for (const vote of votes) {
+        const voteIdStr = String(vote._id);
+        const casts = voteCastsByVoteId[voteIdStr] || [];
+
+        // Create a set of voter IDs who voted
+        const votersWhoVoted = new Set(casts.map((c) => String(c.voter._id)));
+
+        csvContent += `Vote Name:,${escapeCSV(vote.name)}\n`;
+        csvContent += `Start Date:,${formatDateTimeUK(vote.startAt)}\n`;
+        csvContent += `End Date:,${formatDateTimeUK(vote.endAt)}\n`;
+        csvContent += `Locations:,${vote.locations.map((l) => l.name).join("; ")}\n`;
+        csvContent += `Total Eligible Voters:,${vote.voters.length}\n`;
+        csvContent += `Total Votes Cast:,${casts.length}\n`;
+        csvContent += `Participation Rate:,${vote.voters.length > 0 ? ((casts.length / vote.voters.length) * 100).toFixed(1) : 0}%\n`;
+        csvContent += "\n";
+
+        // Voter participation details
+        csvContent += "Employee ID,Employee Name,Voting Status,Vote Date/Time\n";
+
+        // Sort voters: voted first, then not voted
+        const votersList = vote.voters.map((voter) => {
+          const voterId = String(voter._id);
+          const hasVoted = votersWhoVoted.has(voterId);
+          const castRecord = casts.find((c) => String(c.voter._id) === voterId);
+          return {
+            employeeId: voter.employeeId,
+            name: `${voter.firstName} ${voter.lastName}`,
+            hasVoted,
+            voteTime: castRecord ? castRecord.createdAt : null,
+          };
+        });
+
+        // Sort: voted employees first
+        votersList.sort((a, b) => {
+          if (a.hasVoted && !b.hasVoted) return -1;
+          if (!a.hasVoted && b.hasVoted) return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+        for (const voter of votersList) {
+          csvContent += `${escapeCSV(voter.employeeId)},`;
+          csvContent += `${escapeCSV(voter.name)},`;
+          csvContent += `${voter.hasVoted ? "Voted" : "Did Not Vote"},`;
+          csvContent += `${voter.hasVoted ? formatDateTimeUK(voter.voteTime) : ""}\n`;
+        }
+
+        csvContent += "\n---\n\n";
+      }
+    }
+
+    // ===== SUMMARY/WINNERS SECTION =====
+    if (type === "summary" || type === "both") {
+      csvContent += "=== WINNERS SUMMARY ===\n\n";
+
+      csvContent += "Vote Name,Location,Winner Name,Winner Employee ID,Total Votes Received,Total Eligible Voters,Voters Who Voted,Voters Who Did Not Vote,Participation Rate,Winner Announced Date\n";
+
+      for (const vote of votes) {
+        const voteIdStr = String(vote._id);
+        const casts = voteCastsByVoteId[voteIdStr] || [];
+
+        const totalVoters = vote.voters.length;
+        const votersWhoVoted = casts.length;
+        const votersNotVoted = totalVoters - votersWhoVoted;
+        const participationRate = totalVoters > 0 ? ((votersWhoVoted / totalVoters) * 100).toFixed(1) : 0;
+
+        if (vote.winners && vote.winners.length > 0) {
+          // Count votes per nominee
+          const voteCountMap = {};
+          casts.forEach((cast) => {
+            cast.nominees.forEach((nominee) => {
+              const nomineeId = String(nominee._id);
+              voteCountMap[nomineeId] = (voteCountMap[nomineeId] || 0) + 1;
+            });
+          });
+
+          for (const winner of vote.winners) {
+            const winnerEmployeeId = String(winner.employee._id);
+            const votesReceived = voteCountMap[winnerEmployeeId] || 0;
+
+            csvContent += `${escapeCSV(vote.name)},`;
+            csvContent += `${escapeCSV(winner.location?.name || "N/A")},`;
+            csvContent += `${escapeCSV(winner.employee.firstName + " " + winner.employee.lastName)},`;
+            csvContent += `${escapeCSV(winner.employee.employeeId)},`;
+            csvContent += `${votesReceived},`;
+            csvContent += `${totalVoters},`;
+            csvContent += `${votersWhoVoted},`;
+            csvContent += `${votersNotVoted},`;
+            csvContent += `${participationRate}%,`;
+            csvContent += `${formatDateUK(winner.announcedAt)}\n`;
+          }
+        } else {
+          // No winners announced yet
+          csvContent += `${escapeCSV(vote.name)},`;
+          csvContent += `N/A,`;
+          csvContent += `No winner announced,`;
+          csvContent += `,`;
+          csvContent += `,`;
+          csvContent += `${totalVoters},`;
+          csvContent += `${votersWhoVoted},`;
+          csvContent += `${votersNotVoted},`;
+          csvContent += `${participationRate}%,\n`;
+        }
+      }
+
+      csvContent += "\n";
+    }
+
+    // Add generation timestamp
+    csvContent += `\nReport Generated:,${formatDateTimeUK(new Date())}\n`;
+    csvContent += `Total Votes Exported:,${votes.length}\n`;
+
+    // Set headers for CSV download
+    const filename = `voting_export_${formatDateUK(new Date()).replace(/\//g, "-")}.csv`;
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(csvContent);
+  } catch (error) {
+    console.error("Export votes CSV error:", error);
+    return res.status(500).json({
+      message: "Server error while exporting votes",
+    });
+  }
+};
+
 module.exports = {
   createVote,
   updateVote,
@@ -2584,6 +2804,7 @@ module.exports = {
   sendVoteInvites,
   getInviteDetails,
   castVoteWithInvite,
-  sendWinnerSummaryToNominees,     // global
-  sendWinnerSummaryToLocation,     // ✅ per-store (new)
+  sendWinnerSummaryToNominees,
+  sendWinnerSummaryToLocation,
+  exportVotesCSV,
 };

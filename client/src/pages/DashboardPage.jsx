@@ -30,47 +30,51 @@ const DashboardPage = ({ user }) => {
 
   const mainCardStyle = {
     width: "100%",
-    borderRadius: 20,
-    boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
-    border: "none",
-    background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+    borderRadius: 12,
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+    border: "1px solid #e2e8f0",
+    background: "#ffffff",
     minHeight: "calc(100vh - 180px)",
     position: "relative",
     overflow: "hidden",
   };
 
   const actionCardStyle = {
-    borderRadius: 16,
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.06)",
-    border: "none",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    borderRadius: 12,
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+    border: "1px solid #e2e8f0",
+    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
     height: "100%",
     background: "#ffffff",
+    cursor: "pointer",
+    overflow: "hidden",
+    position: "relative",
   };
 
-  const actionCardHoverStyle = {
-    transform: "translateY(-4px)",
-    boxShadow: "0 12px 28px rgba(0, 0, 0, 0.12)",
+  const cardHoverStyle = {
+    transform: "translateY(-2px)",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+    borderColor: "#cbd5e1",
   };
 
-  const iconBadgeStyle = (color1, color2) => ({
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+  const iconBadgeStyle = (color) => ({
+    width: 48,
+    height: 48,
+    borderRadius: 10,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: `linear-gradient(135deg, ${color1}, ${color2})`,
+    background: color,
     color: "#fff",
-    fontSize: 24,
-    boxShadow: `0 8px 16px ${color1}40`,
+    fontSize: 22,
+    transition: "all 0.2s ease",
   });
 
   const cardColors = {
-    locations: { primary: "#3b82f6", secondary: "#2563eb" },
-    employees: { primary: "#8b5cf6", secondary: "#7c3aed" },
-    voting: { primary: "#ec4899", secondary: "#db2777" },
-    winners: { primary: "#f59e0b", secondary: "#d97706" },
+    locations: { primary: "#3b82f6", icon: "📍" },
+    employees: { primary: "#6366f1", icon: "👥" },
+    voting: { primary: "#8b5cf6", icon: "🗳️" },
+    winners: { primary: "#f59e0b", icon: "🏆" },
   };
 
   // Logo background overlay
@@ -116,16 +120,16 @@ const DashboardPage = ({ user }) => {
             level={2}
             style={{
               marginBottom: 8,
-              color: "#0f172a",
-              fontWeight: 700,
-              fontSize: 32,
+              color: "#1e293b",
+              fontWeight: 600,
+              fontSize: 28,
             }}
           >
-            Welcome back, {displayName}! 👋
+            Welcome back, {displayName}
           </Title>
           <Text
             style={{
-              fontSize: 16,
+              fontSize: 15,
               color: "#64748b",
               display: "block",
             }}
@@ -145,20 +149,17 @@ const DashboardPage = ({ user }) => {
               bodyStyle={{ padding: 24 }}
               onClick={goLocations}
               onMouseEnter={(e) => {
-                Object.assign(e.currentTarget.style, actionCardHoverStyle);
+                Object.assign(e.currentTarget.style, cardHoverStyle);
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px rgba(0, 0, 0, 0.06)";
+                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.05)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
               }}
             >
-              <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
                 <div
-                  style={iconBadgeStyle(
-                    cardColors.locations.primary,
-                    cardColors.locations.secondary
-                  )}
+                  style={iconBadgeStyle(cardColors.locations.primary)}
                 >
                   <EnvironmentOutlined />
                 </div>
@@ -166,7 +167,7 @@ const DashboardPage = ({ user }) => {
                   <Title
                     level={4}
                     style={{
-                      marginBottom: 8,
+                      margin: 0,
                       color: "#1e293b",
                       fontWeight: 600,
                     }}
@@ -177,10 +178,11 @@ const DashboardPage = ({ user }) => {
                     style={{
                       color: "#64748b",
                       fontSize: 14,
-                      lineHeight: 1.6,
+                      display: "block",
+                      marginTop: 8,
                     }}
                   >
-                    Add and manage store branches for voting sessions
+                    Manage store locations
                   </Text>
                 </div>
               </Space>
@@ -195,20 +197,17 @@ const DashboardPage = ({ user }) => {
               bodyStyle={{ padding: 24 }}
               onClick={goEmployees}
               onMouseEnter={(e) => {
-                Object.assign(e.currentTarget.style, actionCardHoverStyle);
+                Object.assign(e.currentTarget.style, cardHoverStyle);
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px rgba(0, 0, 0, 0.06)";
+                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.05)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
               }}
             >
-              <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
                 <div
-                  style={iconBadgeStyle(
-                    cardColors.employees.primary,
-                    cardColors.employees.secondary
-                  )}
+                  style={iconBadgeStyle(cardColors.employees.primary)}
                 >
                   <TeamOutlined />
                 </div>
@@ -216,7 +215,7 @@ const DashboardPage = ({ user }) => {
                   <Title
                     level={4}
                     style={{
-                      marginBottom: 8,
+                      margin: 0,
                       color: "#1e293b",
                       fontWeight: 600,
                     }}
@@ -227,10 +226,11 @@ const DashboardPage = ({ user }) => {
                     style={{
                       color: "#64748b",
                       fontSize: 14,
-                      lineHeight: 1.6,
+                      display: "block",
+                      marginTop: 8,
                     }}
                   >
-                    Manage employee details and perform bulk imports
+                    Manage employee details
                   </Text>
                 </div>
               </Space>
@@ -245,20 +245,17 @@ const DashboardPage = ({ user }) => {
               bodyStyle={{ padding: 24 }}
               onClick={goVoting}
               onMouseEnter={(e) => {
-                Object.assign(e.currentTarget.style, actionCardHoverStyle);
+                Object.assign(e.currentTarget.style, cardHoverStyle);
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px rgba(0, 0, 0, 0.06)";
+                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.05)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
               }}
             >
-              <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
                 <div
-                  style={iconBadgeStyle(
-                    cardColors.voting.primary,
-                    cardColors.voting.secondary
-                  )}
+                  style={iconBadgeStyle(cardColors.voting.primary)}
                 >
                   <BarChartOutlined />
                 </div>
@@ -266,7 +263,7 @@ const DashboardPage = ({ user }) => {
                   <Title
                     level={4}
                     style={{
-                      marginBottom: 8,
+                      margin: 0,
                       color: "#1e293b",
                       fontWeight: 600,
                     }}
@@ -277,10 +274,11 @@ const DashboardPage = ({ user }) => {
                     style={{
                       color: "#64748b",
                       fontSize: 14,
-                      lineHeight: 1.6,
+                      display: "block",
+                      marginTop: 8,
                     }}
                   >
-                    Create and monitor voting sessions for each store
+                    Create voting sessions
                   </Text>
                 </div>
               </Space>
@@ -295,20 +293,17 @@ const DashboardPage = ({ user }) => {
               bodyStyle={{ padding: 24 }}
               onClick={goWinners}
               onMouseEnter={(e) => {
-                Object.assign(e.currentTarget.style, actionCardHoverStyle);
+                Object.assign(e.currentTarget.style, cardHoverStyle);
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px rgba(0, 0, 0, 0.06)";
+                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.05)";
+                e.currentTarget.style.borderColor = "#e2e8f0";
               }}
             >
-              <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
                 <div
-                  style={iconBadgeStyle(
-                    cardColors.winners.primary,
-                    cardColors.winners.secondary
-                  )}
+                  style={iconBadgeStyle(cardColors.winners.primary)}
                 >
                   <CrownOutlined />
                 </div>
@@ -316,7 +311,7 @@ const DashboardPage = ({ user }) => {
                   <Title
                     level={4}
                     style={{
-                      marginBottom: 8,
+                      margin: 0,
                       color: "#1e293b",
                       fontWeight: 600,
                     }}
@@ -327,10 +322,11 @@ const DashboardPage = ({ user }) => {
                     style={{
                       color: "#64748b",
                       fontSize: 14,
-                      lineHeight: 1.6,
+                      display: "block",
+                      marginTop: 8,
                     }}
                   >
-                    Review store winners and manage tiebreak decisions
+                    View winners & history
                   </Text>
                 </div>
               </Space>
@@ -349,10 +345,10 @@ const DashboardPage = ({ user }) => {
           <Col span={24}>
             <Card
               style={{
-                borderRadius: 16,
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                borderRadius: 12,
+                background: "#3b82f6",
                 border: "none",
-                boxShadow: "0 8px 24px rgba(102, 126, 234, 0.3)",
+                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.2)",
               }}
               bodyStyle={{ padding: 24 }}
             >
@@ -368,7 +364,7 @@ const DashboardPage = ({ user }) => {
                   >
                     Ready to manage your voting operations?
                   </Title>
-                  <Text style={{ color: "#e9d5ff", fontSize: 14 }}>
+                  <Text style={{ color: "rgba(255, 255, 255, 0.9)", fontSize: 14 }}>
                     All your voting management tools are just one click away
                   </Text>
                 </Col>

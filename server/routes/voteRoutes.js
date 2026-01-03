@@ -19,11 +19,15 @@ const {
   getInviteDetails,
   castVoteWithInvite,
   sendWinnerSummaryToNominees,
-  sendWinnerSummaryToLocation, // ✅ NEW
+  sendWinnerSummaryToLocation,
+  exportVotesCSV,
 } = require("../controllers/voteController");
 
 // 🔹 Global winners history – must be BEFORE any `/:id` routes
 router.get("/winners/history", getWinnersHistory);
+
+// 🔹 Export votes to CSV – must be BEFORE any `/:id` routes
+router.post("/export-csv", exportVotesCSV);
 
 // 🔹 List & create votes
 router.get("/", getVotes);

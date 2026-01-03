@@ -43,6 +43,7 @@ import {
   TeamOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -99,6 +100,12 @@ const VotingManagementPage = () => {
   const [currentVoteForInvites, setCurrentVoteForInvites] = useState(null);
   const [sendModeSelection, setSendModeSelection] = useState("all"); // "all" | "selected" | "notifyWinners"
   const [selectedInviteEmployeeIds, setSelectedInviteEmployeeIds] = useState([]);
+
+  // 🔹 Export modal state
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [selectedExportVoteIds, setSelectedExportVoteIds] = useState([]);
+  const [exportType, setExportType] = useState("both"); // "full" | "summary" | "both"
 
   const API_BASE = API_BASE_URL;
 
@@ -1080,6 +1087,9 @@ const VotingManagementPage = () => {
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
               Create Vote
             </Button>
+            <Button icon={<DownloadOutlined />} onClick={() => setExportModalVisible(true)}>
+              Export CSV
+            </Button>
             <Button icon={<TrophyOutlined />} onClick={goToWinners}>
               Winner History
             </Button>
@@ -1639,6 +1649,167 @@ const VotingManagementPage = () => {
             )}
           </>
         )}
+      </Modal>
+
+      {/* Export CSV Modal */}
+      <Modal
+        title="Export Voting Data"
+        open={exportModalVisible}
+        onCancel={() => {
+          setExportModalVisible(false);
+          setSelectedExportVoteIds([]);
+          setExportType("both");
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setExportModalVisible(false);
+              setSelectedExportVoteIds([]);
+              setExportType("both");
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="export"
+            type="primary"
+            icon={<DownloadOutlined />}
+            loading={exportLoading}
+            disabled={selectedExportVoteIds.length === 0}
+            onClick={async () => {
+              try {
+                setExportLoading(true);
+                const response = await axios.post(
+                  `${API_BASE}/votes/export-csv`,
+                  {
+                    voteIds: selectedExportVoteIds,
+                    exportType,
+                  },
+                  {
+                    responseType: "blob",
+                  }
+                );
+
+                // Create download link
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement("a");
+                link.href = url;
+                
+                // Get filename from response headers or use default
+                const contentDisposition = response.headers["content-disposition"];
+                let filename = "voting_export.csv";
+                if (contentDisposition) {
+                  const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                  if (filenameMatch) {
+                    filename = filenameMatch[1];
+                  }
+                }
+                
+                link.setAttribute("download", filename);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+
+                message.success("Export downloaded successfully");
+                setExportModalVisible(false);
+                setSelectedExportVoteIds([]);
+                setExportType("both");
+              } catch (error) {
+                console.error("Export error:", error);
+                message.error(
+                  error.response?.data?.message || "Failed to export data"
+                );
+              } finally {
+                setExportLoading(false);
+              }
+            }}
+          >
+            Export
+          </Button>,
+        ]}
+        width={600}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Select Voting Sessions to Export
+          </Text>
+          <Select
+            mode="multiple"
+            placeholder="Select one or more voting sessions"
+            style={{ width: "100%" }}
+            value={selectedExportVoteIds}
+            onChange={setSelectedExportVoteIds}
+            optionFilterProp="children"
+            showSearch
+            allowClear
+          >
+            {votes.map((vote) => (
+              <Option key={vote._id} value={vote._id}>
+                {vote.name} ({new Date(vote.startAt).toLocaleDateString("en-GB")} - {new Date(vote.endAt).toLocaleDateString("en-GB")})
+              </Option>
+            ))}
+          </Select>
+          <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+            You can select multiple voting sessions to export them in a single CSV file.
+          </Text>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Export Type
+          </Text>
+          <Radio.Group
+            value={exportType}
+            onChange={(e) => setExportType(e.target.value)}
+            style={{ width: "100%" }}
+          >
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Radio value="both" style={{ width: "100%" }}>
+                <div>
+                  <Text strong>Both (Full Data + Winners Summary)</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Complete export with all voter participation details and winners summary
+                  </Text>
+                </div>
+              </Radio>
+              <Radio value="full" style={{ width: "100%" }}>
+                <div>
+                  <Text strong>Full Data Only</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Detailed breakdown: which employees voted, which did not, with date/time
+                  </Text>
+                </div>
+              </Radio>
+              <Radio value="summary" style={{ width: "100%" }}>
+                <div>
+                  <Text strong>Winners Summary Only</Text>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Quick summary: winners, vote counts, participation rates
+                  </Text>
+                </div>
+              </Radio>
+            </Space>
+          </Radio.Group>
+        </div>
+
+        <div
+          style={{
+            background: "#f8fafc",
+            padding: 12,
+            borderRadius: 8,
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            <strong>Note:</strong> The exported CSV will not show which employee voted for which nominee. 
+            All data is formatted in UK date format (DD/MM/YYYY).
+          </Text>
+        </div>
       </Modal>
     </>
   );
