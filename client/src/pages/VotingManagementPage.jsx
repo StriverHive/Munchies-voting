@@ -45,10 +45,9 @@ import {
   ClockCircleOutlined,
   DownloadOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -107,12 +106,10 @@ const VotingManagementPage = () => {
   const [selectedExportVoteIds, setSelectedExportVoteIds] = useState([]);
   const [exportType, setExportType] = useState("both"); // "full" | "summary" | "both"
 
-  const API_BASE = API_BASE_URL;
-
   const fetchLocations = async () => {
     try {
       setLoadingLocations(true);
-      const res = await axios.get(`${API_BASE}/locations`);
+      const res = await api.get("/locations");
       setLocations(res.data.locations || []);
     } catch (error) {
       console.error("Fetch locations error:", error);
@@ -128,7 +125,7 @@ const VotingManagementPage = () => {
   const fetchEmployees = async () => {
     try {
       setLoadingEmployees(true);
-      const res = await axios.get(`${API_BASE}/employees`);
+      const res = await api.get(`/employees`);
       setEmployees(res.data.employees || []);
     } catch (error) {
       console.error("Fetch employees error:", error);
@@ -144,7 +141,7 @@ const VotingManagementPage = () => {
   const fetchVotes = async () => {
     try {
       setLoadingVotes(true);
-      const res = await axios.get(`${API_BASE}/votes`);
+      const res = await api.get(`/votes`);
       setVotes(res.data.votes || []);
     } catch (error) {
       console.error("Fetch votes error:", error);
@@ -317,10 +314,10 @@ const VotingManagementPage = () => {
       const payload = buildPayloadFromForm(values);
 
       if (formMode === "edit" && editingVote) {
-        const res = await axios.put(`${API_BASE}/votes/${editingVote._id}`, payload);
+        const res = await api.put(`/votes/${editingVote._id}`, payload);
         message.success(res.data.message || "Vote updated successfully");
       } else {
-        const res = await axios.post(`${API_BASE}/votes`, payload);
+        const res = await api.post(`/votes`, payload);
         message.success(res.data.message || "Vote created successfully");
       }
 
@@ -347,7 +344,7 @@ const VotingManagementPage = () => {
       onOk: async () => {
         try {
           setDeletingVoteId(vote._id);
-          const res = await axios.delete(`${API_BASE}/votes/${vote._id}`);
+          const res = await api.delete(`/votes/${vote._id}`);
           message.success(res.data.message || "Vote deleted successfully");
           await fetchVotes();
         } catch (error) {
@@ -418,7 +415,7 @@ const VotingManagementPage = () => {
 
       if (sendModeSelection === "notifyWinners") {
         // Your backend now notifies ALL employees of this vote cycle (global).
-        res = await axios.post(`${API_BASE}/votes/${voteId}/notify-nominees-winners`);
+        res = await api.post(`/votes/${voteId}/notify-nominees-winners`);
       } else {
         const payload =
           sendModeSelection === "all"
@@ -428,7 +425,7 @@ const VotingManagementPage = () => {
                 selectedEmployeeIds: selectedInviteEmployeeIds,
               };
 
-        res = await axios.post(`${API_BASE}/votes/${voteId}/send-invites`, payload);
+        res = await api.post(`/votes/${voteId}/send-invites`, payload);
       }
 
       const { message: msg, failureCount } = res.data || {};
@@ -473,7 +470,7 @@ const VotingManagementPage = () => {
       setWinnerModalVisible(true);
       setWinnerModalLoading(true);
 
-      const res = await axios.get(`${API_BASE}/votes/${vote._id}/winners`);
+      const res = await api.get(`/votes/${vote._id}/winners`);
       setWinnerData(res.data);
     } catch (error) {
       console.error("Fetch winners error:", error);
@@ -533,15 +530,15 @@ const VotingManagementPage = () => {
           setNotifyingResults(true);
 
           // ✅ Use your existing endpoint (backend updated to notify all employees)
-          const res = await axios.post(
-            `${API_BASE}/votes/${winnerData.vote._id}/notify-nominees-winners`
+          const res = await api.post(
+            `/votes/${winnerData.vote._id}/notify-nominees-winners`
           );
 
           message.success(res.data?.message || "Results announced successfully");
 
           // Reload winner data so the button disables based on backend flag
-          const refreshed = await axios.get(
-            `${API_BASE}/votes/${winnerData.vote._id}/winners`
+          const refreshed = await api.get(
+            `/votes/${winnerData.vote._id}/winners`
           );
           setWinnerData(refreshed.data);
 
@@ -582,13 +579,13 @@ const VotingManagementPage = () => {
       cancelText: "Cancel",
       onOk: async () => {
         try {
-          await axios.post(`${API_BASE}/votes/${winnerData.vote._id}/announce-winner`, {
+          await api.post(`/votes/${winnerData.vote._id}/announce-winner`, {
             locationId: location.locationId,
             nomineeId: nominee._id,
           });
           message.success("Winner announced successfully");
 
-          const res = await axios.get(`${API_BASE}/votes/${winnerData.vote._id}/winners`);
+          const res = await api.get(`/votes/${winnerData.vote._id}/winners`);
           setWinnerData(res.data);
         } catch (error) {
           console.error("Announce winner error:", error);
@@ -1680,8 +1677,8 @@ const VotingManagementPage = () => {
             onClick={async () => {
               try {
                 setExportLoading(true);
-                const response = await axios.post(
-                  `${API_BASE}/votes/export-csv`,
+                const response = await api.post(
+                  `/votes/export-csv`,
                   {
                     voteIds: selectedExportVoteIds,
                     exportType,

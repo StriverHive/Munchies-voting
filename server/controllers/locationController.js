@@ -1,5 +1,6 @@
 // server/controllers/locationController.js
 const Location = require("../models/Location");
+const { createdByFilter, canModify } = require("../middleware/authMiddleware");
 
 // POST /api/locations
 const createLocation = async (req, res) => {
@@ -31,7 +32,11 @@ const createLocation = async (req, res) => {
       });
     }
 
-    const location = await Location.create({ name, code });
+    const location = await Location.create({
+      name,
+      code,
+      createdBy: req.user ? req.user._id : null,
+    });
 
     return res.status(201).json({
       message: "Location created successfully",
@@ -48,7 +53,8 @@ const createLocation = async (req, res) => {
 // GET /api/locations
 const getLocations = async (req, res) => {
   try {
-    const locations = await Location.find().sort({ createdAt: -1 });
+    const filter = createdByFilter(req);
+    const locations = await Location.find(filter).sort({ createdAt: -1 });
 
     return res.json({
       locations,
@@ -89,6 +95,9 @@ const updateLocation = async (req, res) => {
         message: "Location not found",
       });
     }
+    if (!canModify(location, req)) {
+      return res.status(403).json({ message: "You do not have access to this location" });
+    }
 
     const exists = await Location.findOne({
       $or: [{ name }, { code }],
@@ -123,13 +132,16 @@ const deleteLocation = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const location = await Location.findByIdAndDelete(id);
-
+    const location = await Location.findById(id);
     if (!location) {
       return res.status(404).json({
         message: "Location not found",
       });
     }
+    if (!canModify(location, req)) {
+      return res.status(403).json({ message: "You do not have access to this location" });
+    }
+    await Location.findByIdAndDelete(id);
 
     return res.json({
       message: "Location deleted successfully",

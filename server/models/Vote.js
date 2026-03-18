@@ -57,6 +57,13 @@ const voteSchema = new mongoose.Schema(
 
     // Official winners selected per store for this vote
     winners: [winnerSchema],
+
+    // Optional: which user created this vote (null = legacy, visible to all authenticated users)
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );

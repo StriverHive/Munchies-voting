@@ -26,9 +26,8 @@ import {
   ThunderboltOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -47,8 +46,8 @@ const VotingReportPage = () => {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `${API_BASE_URL}/votes/${voteId}/report`
+      const res = await api.get(
+        `/votes/${voteId}/report`
       );
       setReportData(res.data);
     } catch (error) {
@@ -91,8 +90,8 @@ const VotingReportPage = () => {
       setVotersModalVisible(true);
       setVotersModalLoading(true);
 
-      const res = await axios.get(
-        `${API_BASE_URL}/votes/${voteId}/voters`
+      const res = await api.get(
+        `/votes/${voteId}/voters`
       );
       setVoterDetails(res.data.voters || []);
     } catch (error) {

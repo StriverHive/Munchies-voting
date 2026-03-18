@@ -10,9 +10,8 @@ import {
   Space,
   Alert,
 } from "antd";
-import axios from "axios";
+import api from "../api";
 import { useParams } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { Group: CheckboxGroup } = Checkbox;
@@ -36,8 +35,8 @@ const PublicVotePage = () => {
       setChecking(true);
       setErrorText(null);
 
-      const res = await axios.post(
-        `${API_BASE_URL}/votes/${voteId}/check-employee`,
+      const res = await api.post(
+        `/votes/${voteId}/check-employee`,
         {
           employeeId: values.employeeId,
         }
@@ -103,8 +102,8 @@ const PublicVotePage = () => {
       setSubmitting(true);
       setErrorText(null);
 
-      await axios.post(
-        `${API_BASE_URL}/votes/${voteId}/cast`,
+      await api.post(
+        `/votes/${voteId}/cast`,
         {
           employeeId: voter.employeeId,
           nomineeIds: selectedNomineeIds,

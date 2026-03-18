@@ -28,9 +28,8 @@ import {
   InfoCircleOutlined,
   CrownOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -62,8 +61,8 @@ const WinnersPage = () => {
 
     try {
       setLoadingWinners(true);
-      const res = await axios.get(
-        `${API_BASE_URL}/votes/${vote._id}/winners`
+      const res = await api.get(
+        `/votes/${vote._id}/winners`
       );
       setCurrentData(res.data);
     } catch (error) {
@@ -79,7 +78,7 @@ const WinnersPage = () => {
   const fetchVotes = async (preferredVoteId) => {
     try {
       setLoadingVotes(true);
-      const res = await axios.get(`${API_BASE_URL}/votes`);
+      const res = await api.get("/votes");
       const votes = res.data.votes || [];
       setAllVotes(votes);
 
@@ -182,8 +181,8 @@ const WinnersPage = () => {
       cancelText: "Cancel",
       onOk: async () => {
         try {
-          await axios.post(
-            `${API_BASE_URL}/votes/${currentData.vote._id}/announce-winner`,
+          await api.post(
+            `/votes/${currentData.vote._id}/announce-winner`,
             {
               locationId: location.locationId,
               nomineeId: nominee._id,

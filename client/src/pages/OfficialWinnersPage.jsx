@@ -8,9 +8,8 @@ import {
   message,
 } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -24,8 +23,8 @@ const OfficialWinnersPage = () => {
   const fetchOfficialWinners = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `${API_BASE_URL}/votes/${voteId}/official-winners`
+      const res = await api.get(
+        `/votes/${voteId}/official-winners`
       );
       setData(res.data);
     } catch (error) {

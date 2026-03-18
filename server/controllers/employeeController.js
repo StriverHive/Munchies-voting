@@ -2,6 +2,7 @@
 const { parse } = require("csv-parse/sync");
 const Employee = require("../models/Employee");
 const Location = require("../models/Location");
+const { createdByFilter, canModify } = require("../middleware/authMiddleware");
 
 /**
  * Helper to safely read a field from possible header names (for flexible CSVs)
@@ -37,15 +38,16 @@ const getEmployees = async (req, res) => {
   try {
     let { page, pageSize, search } = req.query;
 
-    let filter = {};
+    let filter = createdByFilter(req);
     const trimmedSearch = typeof search === "string" ? search.trim() : "";
 
     if (trimmedSearch) {
       const regex = new RegExp(trimmedSearch, "i");
 
-      const matchingLocations = await Location.find({
-        $or: [{ name: regex }, { code: regex }],
-      }).select("_id");
+      const locFilter = {
+        $and: [createdByFilter(req), { $or: [{ name: regex }, { code: regex }] }],
+      };
+      const matchingLocations = await Location.find(locFilter).select("_id");
 
       const locationIds = matchingLocations.map((loc) => loc._id);
 
@@ -55,7 +57,7 @@ const getEmployees = async (req, res) => {
         orConditions.push({ locations: { $in: locationIds } });
       }
 
-      filter = { $or: orConditions };
+      filter = { $and: [filter, { $or: orConditions }] };
     }
 
     if (page && pageSize) {
@@ -140,6 +142,7 @@ const createEmployee = async (req, res) => {
       email: normalizedEmail,
       employeeId: normalizedEmployeeId,
       locations: locations.map((l) => l._id),
+      createdBy: req.user ? req.user._id : null,
     });
 
     const populated = await Employee.findById(employee._id).populate(
@@ -176,6 +179,9 @@ const updateEmployee = async (req, res) => {
     const employee = await Employee.findById(id);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
+    }
+    if (!canModify(employee, req)) {
+      return res.status(403).json({ message: "You do not have access to this employee" });
     }
 
     if (employeeId || email) {
@@ -245,6 +251,9 @@ const deleteEmployee = async (req, res) => {
 
     const employee = await Employee.findById(id);
     if (!employee) return res.status(404).json({ message: "Employee not found" });
+    if (!canModify(employee, req)) {
+      return res.status(403).json({ message: "You do not have access to this employee" });
+    }
 
     await Employee.deleteOne({ _id: id });
 
@@ -437,6 +446,7 @@ const bulkCreateEmployees = async (req, res) => {
           email: normalizedEmail,
           employeeId: normalizedEmployeeId,
           locations: locationIds,
+          createdBy: req.user ? req.user._id : null,
         });
         created++;
       } catch (err) {
@@ -754,6 +764,7 @@ const batchUpdateEmployees = async (req, res) => {
             email,
             employeeId: normalizedEmployeeId,
             locations: locationIds,
+            createdBy: req.user ? req.user._id : null,
           });
           created++;
         } catch (err) {

@@ -19,16 +19,13 @@ import {
   ExclamationCircleOutlined,
   TrophyOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { Radio } from "antd";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
-
-const API_BASE = API_BASE_URL;
 
 const formatDateTimeUK = (value) => {
   if (!value) return "-";
@@ -115,7 +112,7 @@ const AllVotesPage = () => {
   const fetchVotes = async () => {
     try {
       setLoadingVotes(true);
-      const res = await axios.get(`${API_BASE}/votes`);
+      const res = await api.get("/votes");
       setVotes(res.data.votes || []);
     } catch (error) {
       console.error("Fetch votes error:", error);
@@ -132,7 +129,7 @@ const AllVotesPage = () => {
   const fetchEmployees = async () => {
     try {
       setLoadingEmployees(true);
-      const res = await axios.get(`${API_BASE}/employees`);
+      const res = await api.get("/employees");
       setEmployees(res.data.employees || []);
     } catch (error) {
       console.error("Fetch employees error:", error);
@@ -222,8 +219,8 @@ const AllVotesPage = () => {
               selectedEmployeeIds: selectedInviteEmployeeIds,
             };
 
-      const res = await axios.post(
-        `${API_BASE}/votes/${voteId}/send-invites`,
+      const res = await api.post(
+        `/votes/${voteId}/send-invites`,
         payload
       );
 
@@ -261,7 +258,7 @@ const AllVotesPage = () => {
       onOk: async () => {
         try {
           setDeletingVoteId(vote._id);
-          const res = await axios.delete(`${API_BASE}/votes/${vote._id}`);
+          const res = await api.delete(`/votes/${vote._id}`);
           message.success(res.data.message || "Vote deleted successfully");
           await fetchVotes();
         } catch (error) {
@@ -288,7 +285,7 @@ const AllVotesPage = () => {
       setWinnerModalVisible(true);
       setWinnerModalLoading(true);
 
-      const res = await axios.get(`${API_BASE}/votes/${vote._id}/winners`);
+      const res = await api.get(`/votes/${vote._id}/winners`);
       setWinnerData(res.data);
     } catch (error) {
       console.error("Fetch winners error:", error);
@@ -334,8 +331,8 @@ const AllVotesPage = () => {
       cancelText: "Cancel",
       onOk: async () => {
         try {
-          await axios.post(
-            `${API_BASE}/votes/${winnerData.vote._id}/announce-winner`,
+          await api.post(
+            `/votes/${winnerData.vote._id}/announce-winner`,
             {
               locationId: location.locationId,
               nomineeId: nominee._id,
@@ -343,8 +340,8 @@ const AllVotesPage = () => {
           );
           message.success("Winner announced successfully");
 
-          const res = await axios.get(
-            `${API_BASE}/votes/${winnerData.vote._id}/winners`
+          const res = await api.get(
+            `/votes/${winnerData.vote._id}/winners`
           );
           setWinnerData(res.data);
         } catch (error) {

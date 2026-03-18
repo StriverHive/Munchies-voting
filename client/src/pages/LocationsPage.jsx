@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import API_BASE_URL from "../config/api";
+import api from "../api";
 
 const LocationsPage = () => {
   const [locations, setLocations] = useState([]);
@@ -33,9 +33,8 @@ const LocationsPage = () => {
   const fetchLocations = async () => {
     try {
       setLoadingTable(true);
-      const res = await fetch(`${API_BASE_URL}/locations`);
-      const data = await res.json();
-      setLocations(data.locations || []);
+      const res = await api.get("/locations");
+      setLocations(res.data.locations || []);
     } catch (error) {
       console.error("Get locations error:", error);
       showMessage("Failed to load locations", "error");
@@ -80,35 +79,25 @@ const LocationsPage = () => {
 
     try {
       setSavingLocation(true);
-      const url = editingLocation
-        ? `${API_BASE_URL}/locations/${editingLocation._id}`
-        : `${API_BASE_URL}/locations`;
+      const payload = { name: formName, code: formCode };
+      const res = editingLocation
+        ? await api.put(`/locations/${editingLocation._id}`, payload)
+        : await api.post("/locations", payload);
 
-      const res = await fetch(url, {
-        method: editingLocation ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formName, code: formCode }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        showMessage(
-          data.message ||
-            (editingLocation
-              ? "Location updated successfully"
-              : "Location created successfully"),
-          "success"
-        );
-        setModalVisible(false);
-        setEditingLocation(null);
-        setFormName("");
-        setFormCode("");
-        setFormErrors({});
-        fetchLocations();
-      } else {
-        showMessage(data.message || "Failed to save location", "error");
-      }
+      const data = res.data;
+      showMessage(
+        data.message ||
+          (editingLocation
+            ? "Location updated successfully"
+            : "Location created successfully"),
+        "success"
+      );
+      setModalVisible(false);
+      setEditingLocation(null);
+      setFormName("");
+      setFormCode("");
+      setFormErrors({});
+      fetchLocations();
     } catch (error) {
       console.error("Save location error:", error);
       showMessage("Failed to save location", "error");
@@ -152,7 +141,7 @@ const LocationsPage = () => {
       setDeleteLoading(true);
 
       // Verify password
-      const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
+      const loginRes = await fetch(api.defaults.baseURL + "/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -167,21 +156,13 @@ const LocationsPage = () => {
         return;
       }
 
-      // Delete location
-      const deleteRes = await fetch(
-        `${API_BASE_URL}/locations/${locationToDelete._id}`,
-        { method: "DELETE" }
-      );
-
-      if (deleteRes.ok) {
-        showMessage("Location deleted successfully", "success");
-        setDeleteModalVisible(false);
-        setLocationToDelete(null);
-        setDeletePassword("");
-        fetchLocations();
-      } else {
-        showMessage("Failed to delete location", "error");
-      }
+      // Delete location (api sends auth token)
+      await api.delete(`/locations/${locationToDelete._id}`);
+      showMessage("Location deleted successfully", "success");
+      setDeleteModalVisible(false);
+      setLocationToDelete(null);
+      setDeletePassword("");
+      fetchLocations();
     } catch (error) {
       console.error("Delete location error:", error);
       showMessage("Failed to delete location. Please try again.", "error");

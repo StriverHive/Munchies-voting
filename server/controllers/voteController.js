@@ -6,6 +6,17 @@ const Location = require("../models/Location");
 const Employee = require("../models/Employee");
 const VoteInvite = require("../models/VoteInvite");
 const { sendEmail } = require("../utils/emailService");
+const { createdByFilter, canModify } = require("../middleware/authMiddleware");
+
+// After loading a vote in a protected handler, call this; returns false if 403 was sent
+const ensureCanAccessVote = (vote, req, res) => {
+  if (!vote) return true; // caller handles 404
+  if (!canModify(vote, req)) {
+    res.status(403).json({ message: "You do not have access to this vote" });
+    return false;
+  }
+  return true;
+};
 
 const CLIENT_BASE_URL = process.env.CLIENT_BASE_URL || "http://localhost:3000";
 
@@ -299,6 +310,7 @@ const createVote = async (req, res) => {
       nominees: nomineeIdList,
       votePoints: vp,
       maxVotesPerVoter: maxVotes,
+      createdBy: req.user ? req.user._id : null,
     });
 
     const saved = await Vote.findById(vote._id).populate("locations", "name code");
@@ -322,6 +334,13 @@ const createVote = async (req, res) => {
 const updateVote = async (req, res) => {
   try {
     const { id } = req.params;
+    const existingVote = await Vote.findById(id);
+    if (!existingVote) {
+      return res.status(404).json({ message: "Vote not found" });
+    }
+    if (!canModify(existingVote, req)) {
+      return res.status(403).json({ message: "You do not have access to this vote" });
+    }
     let {
       name,
       locationIds,
@@ -333,12 +352,7 @@ const updateVote = async (req, res) => {
       maxVotesPerVoter,
     } = req.body;
 
-    const vote = await Vote.findById(id);
-    if (!vote) {
-      return res.status(404).json({
-        message: "Vote not found",
-      });
-    }
+    const vote = existingVote;
 
     if (
       !name ||
@@ -500,6 +514,9 @@ const deleteVote = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!canModify(vote, req)) {
+      return res.status(403).json({ message: "You do not have access to this vote" });
+    }
 
     // Remove all related data to keep things clean
     await VoteCast.deleteMany({ vote: vote._id });
@@ -523,7 +540,8 @@ const getVotes = async (req, res) => {
   try {
     const now = new Date();
 
-    const votes = await Vote.find()
+    const filter = createdByFilter(req);
+    const votes = await Vote.find(filter)
       .populate("locations", "name code")
       .populate({
         path: "winners.location",
@@ -671,6 +689,7 @@ const getVoteVoters = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     const voters = await Employee.find({
       _id: { $in: vote.voters },
@@ -737,6 +756,7 @@ const getVoteReport = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     const voteCasts = await VoteCast.find({
       vote: id,
@@ -792,6 +812,7 @@ const getVoteWinners = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     const voteCasts = await VoteCast.find({
       vote: id,
@@ -949,6 +970,7 @@ const announceWinner = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     const now = new Date();
     if (now <= vote.endAt) {
@@ -1099,6 +1121,7 @@ const getOfficialWinners = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     const voteCasts = await VoteCast.find({
       vote: id,
@@ -1213,9 +1236,8 @@ const getWinnersHistory = async (req, res) => {
   try {
     const now = new Date();
 
-    const votes = await Vote.find({
-      endAt: { $lt: now },
-    })
+    const filter = { ...createdByFilter(req), endAt: { $lt: now } };
+    const votes = await Vote.find(filter)
       .populate("locations", "name code")
       .populate({
         path: "nominees",
@@ -1577,6 +1599,7 @@ const sendVoteInvites = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     if (!vote.voters || vote.voters.length === 0) {
       return res.status(400).json({
@@ -2151,6 +2174,7 @@ const sendWinnerSummaryToNominees = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     const now = new Date();
     if (now <= vote.endAt) {
@@ -2382,6 +2406,7 @@ const sendWinnerSummaryToLocation = async (req, res) => {
         message: "Vote not found",
       });
     }
+    if (!ensureCanAccessVote(vote, req, res)) return;
 
     const now = new Date();
     if (now <= vote.endAt) {
@@ -2589,8 +2614,9 @@ const exportVotesCSV = async (req, res) => {
     const validExportTypes = ["full", "summary", "both"];
     const type = validExportTypes.includes(exportType) ? exportType : "both";
 
-    // Fetch all votes with populated data
-    const votes = await Vote.find({ _id: { $in: voteIds } })
+    // Fetch only votes the user is allowed to access (legacy + own)
+    const accessFilter = { _id: { $in: voteIds }, ...createdByFilter(req) };
+    const votes = await Vote.find(accessFilter)
       .populate("locations", "name code")
       .populate("voters", "firstName lastName employeeId locations")
       .populate("nominees", "firstName lastName employeeId locations")

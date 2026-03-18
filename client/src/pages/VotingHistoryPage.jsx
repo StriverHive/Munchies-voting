@@ -28,9 +28,8 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -47,12 +46,11 @@ const VotingHistoryPage = () => {
   const [currentWinnerVote, setCurrentWinnerVote] = useState(null);
   const [winnerData, setWinnerData] = useState(null);
 
-  const API_BASE = API_BASE_URL;
 
   const fetchVotes = async () => {
     try {
       setLoadingVotes(true);
-      const res = await axios.get(`${API_BASE}/votes`);
+      const res = await api.get(`/votes`);
       setVotes(res.data.votes || []);
     } catch (error) {
       console.error("Fetch votes error (history):", error);
@@ -157,7 +155,7 @@ const VotingHistoryPage = () => {
       setWinnerModalVisible(true);
       setWinnerModalLoading(true);
 
-      const res = await axios.get(`${API_BASE}/votes/${vote._id}/winners`);
+      const res = await api.get(`/votes/${vote._id}/winners`);
       setWinnerData(res.data);
     } catch (error) {
       console.error("Fetch winners error (history):", error);
@@ -203,8 +201,8 @@ const VotingHistoryPage = () => {
       cancelText: "Cancel",
       onOk: async () => {
         try {
-          await axios.post(
-            `${API_BASE}/votes/${winnerData.vote._id}/announce-winner`,
+          await api.post(
+            `/votes/${winnerData.vote._id}/announce-winner`,
             {
               locationId: location.locationId,
               nomineeId: nominee._id,
@@ -213,8 +211,8 @@ const VotingHistoryPage = () => {
           message.success("Winner announced successfully");
 
           // Reload winners
-          const res = await axios.get(
-            `${API_BASE}/votes/${winnerData.vote._id}/winners`
+          const res = await api.get(
+            `/votes/${winnerData.vote._id}/winners`
           );
           setWinnerData(res.data);
         } catch (error) {

@@ -35,17 +35,14 @@ import {
   SearchOutlined,
   InboxOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
 const { Search } = Input;
 const { Dragger } = Upload;
-
-const API_BASE = API_BASE_URL;
 
 const EmployeesPage = () => {
   const navigate = useNavigate();
@@ -86,7 +83,7 @@ const EmployeesPage = () => {
   const fetchLocations = async () => {
     try {
       setLoadingLocations(true);
-      const res = await axios.get(`${API_BASE}/locations`);
+      const res = await api.get(`/locations`);
       setLocations(res.data.locations || []);
     } catch (error) {
       console.error("Fetch locations error:", error);
@@ -114,7 +111,7 @@ const EmployeesPage = () => {
         params.search = trimmedSearch;
       }
 
-      const res = await axios.get(`${API_BASE}/employees`, { params });
+      const res = await api.get(`/employees`, { params });
       const data = res.data || {};
       setEmployees(data.employees || []);
       setCurrentPage(data.page || page);
@@ -180,7 +177,7 @@ const EmployeesPage = () => {
         employeeId: values.employeeId,
         locationIds: values.locationIds || [],
       };
-      const res = await axios.post(`${API_BASE}/employees`, payload);
+      const res = await api.post(`/employees`, payload);
       message.success(res.data.message || "Employee created successfully");
       form.resetFields();
       closeCreateModal();
@@ -203,7 +200,7 @@ const EmployeesPage = () => {
       cancelText: "Cancel",
       onOk: async () => {
         try {
-          await axios.delete(`${API_BASE}/employees/${employee._id}`);
+          await api.delete(`/employees/${employee._id}`);
           message.success("Employee deleted successfully");
           fetchEmployees(currentPage, pageSize, searchTerm);
         } catch (error) {
@@ -243,8 +240,8 @@ const EmployeesPage = () => {
         employeeId: values.employeeId,
         locationIds: values.locationIds || [],
       };
-      const res = await axios.put(
-        `${API_BASE}/employees/${editingEmployee._id}`,
+      const res = await api.put(
+        `/employees/${editingEmployee._id}`,
         payload
       );
       message.success(res.data.message || "Employee updated successfully");
@@ -277,8 +274,8 @@ const EmployeesPage = () => {
     formData.append("file", csvFile);
     try {
       setUploading(true);
-      const res = await axios.post(
-        `${API_BASE}/employees/bulk-upload`,
+      const res = await api.post(
+        `/employees/bulk-upload`,
         formData,
         {
           headers: {
@@ -317,7 +314,7 @@ const EmployeesPage = () => {
   const handleDownloadEmployeesCsv = async () => {
     try {
       setExportingCsv(true);
-      const res = await axios.get(`${API_BASE}/employees/export-csv`, {
+      const res = await api.get(`/employees/export-csv`, {
         responseType: "blob",
       });
       const blob = new Blob([res.data], {
@@ -354,8 +351,8 @@ const EmployeesPage = () => {
     formData.append("file", batchCsvFile);
     try {
       setBatchProcessing(true);
-      const res = await axios.post(
-        `${API_BASE}/employees/batch-update`,
+      const res = await api.post(
+        `/employees/batch-update`,
         formData,
         {
           headers: {

@@ -10,23 +10,24 @@ const {
   exportEmployeesCsv,
   batchUpdateEmployees,
 } = require("../controllers/employeeController");
+const { requireAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // NEW: Export employees as CSV
-router.get("/export-csv", exportEmployeesCsv);
+router.get("/export-csv", requireAuth, exportEmployeesCsv);
 
 // Bulk CSV upload (create only – existing behaviour)
-router.post("/bulk-upload", upload.single("file"), bulkCreateEmployees);
+router.post("/bulk-upload", requireAuth, upload.single("file"), bulkCreateEmployees);
 
 // NEW: Batch update (and create) via CSV
-router.post("/batch-update", upload.single("file"), batchUpdateEmployees);
+router.post("/batch-update", requireAuth, upload.single("file"), batchUpdateEmployees);
 
 // Standard CRUD
-router.get("/", getEmployees);
-router.post("/", createEmployee);
-router.put("/:id", updateEmployee);
-router.delete("/:id", deleteEmployee);
+router.get("/", requireAuth, getEmployees);
+router.post("/", requireAuth, createEmployee);
+router.put("/:id", requireAuth, updateEmployee);
+router.delete("/:id", requireAuth, deleteEmployee);
 
 module.exports = router;

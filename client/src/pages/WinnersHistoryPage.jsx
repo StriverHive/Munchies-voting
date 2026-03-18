@@ -22,9 +22,8 @@ import {
   EnvironmentOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
-import API_BASE_URL from "../config/api";
 
 const { Title, Text } = Typography;
 
@@ -37,8 +36,8 @@ const WinnersHistoryPage = () => {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `${API_BASE_URL}/votes/winners/history`
+      const res = await api.get(
+        "/votes/winners/history"
       );
       setHistory(res.data.history || []);
     } catch (error) {

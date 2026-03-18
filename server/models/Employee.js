@@ -34,6 +34,12 @@ const employeeSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    // Optional: which user created this (null = legacy, visible to all authenticated users)
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -18,8 +18,7 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
-import axios from "axios";
-import API_BASE_URL from "../config/api";
+import api from "../api";
 
 const { Title, Text } = Typography;
 
@@ -51,8 +50,8 @@ const InviteVotePage = () => {
         setLoading(true);
         setInviteError(null);
 
-        const res = await axios.get(
-          `${API_BASE_URL}/votes/${voteId}/invite/${token}`
+        const res = await api.get(
+          `/votes/${voteId}/invite/${token}`
         );
 
         console.log("Invite details response:", res.data);
@@ -120,8 +119,8 @@ const InviteVotePage = () => {
 
     try {
       setSubmitting(true);
-      const res = await axios.post(
-        `${API_BASE_URL}/votes/${voteId}/invite/${token}/cast`,
+      const res = await api.post(
+        `/votes/${voteId}/invite/${token}/cast`,
         {
           nomineeIds: selectedNomineeIds,
         }
