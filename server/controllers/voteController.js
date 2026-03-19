@@ -1590,6 +1590,11 @@ const sendVoteInvites = async (req, res) => {
     const { id } = req.params;
     const { sendMode, selectedEmployeeIds } = req.body || {};
 
+    // High-visibility line for Render/host logs — search for SEND_INVITES_API
+    console.log(
+      `[EMAIL] SEND_INVITES_API hit voteId=${id} user=${req.user?.email || req.user?._id || "n/a"} sendMode=${sendMode || "all"}`
+    );
+
     const vote = await Vote.findById(id)
       .populate("locations", "name code")
       .populate("voters", "firstName lastName email employeeId")

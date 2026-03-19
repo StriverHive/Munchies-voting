@@ -1,8 +1,19 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen, waitFor } from "@testing-library/react";
+import App from "./App";
 
-test('renders learn react link', () => {
+beforeEach(() => {
+  localStorage.clear();
+});
+
+test("App loads and shows login when not authenticated", async () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+
+  await waitFor(
+    () => {
+      expect(
+        screen.getByText(/Sign in to access your voting dashboard/i)
+      ).toBeInTheDocument();
+    },
+    { timeout: 8000 }
+  );
 });

@@ -36,3 +36,15 @@ You would add a small integration (e.g. `fetch` to their API) or use their offic
 ## Gmail from your laptop
 
 Gmail SMTP often **does** work from **localhost** with an [App Password](https://support.google.com/accounts/answer/185833). The same config can **fail on Render** because of blocking above, not because Gmail is “wrong.”
+
+## Finding email logs on Render (frontend says “X failed”)
+
+The UI message comes from the **API JSON** (`failureCount` / `errors`), so the backend **did** run `send-invites`. If you don’t see lines in the dashboard:
+
+1. **Open “Logs” and keep them streaming**, then click **Send** again. Logs are tied to **request time**, not deploy time — scroll to the **minute** you sent.
+2. **Search** the log panel for: `[EMAIL]` or `SEND_INVITES_API` or `BATCH_DONE`.
+3. **Redeploy** after pulling the latest code — older builds may not include batch logging.
+4. **Failures before SMTP** (e.g. voter has **no email** in MongoDB) still produce `[EMAIL] BATCH_DONE` and `BATCH_FAIL_REASONS` with `"Missing email address"` — not `[EMAIL] SEND_FAIL` (SMTP never called).
+5. **SMTP blocked / timeout** produces `[EMAIL] SEND_FAIL` with `Connection timeout` (or similar) plus `BATCH_FAIL_REASONS`.
+
+First log line when the route runs: **`[EMAIL] SEND_INVITES_API hit`** — if that never appears, the request is not reaching this service (wrong URL, 401, or a different instance).
