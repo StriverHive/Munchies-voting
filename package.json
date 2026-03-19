@@ -11,14 +11,21 @@
     "start": "cd server && npm install && node server.js",
     "dev": "cd server && npm run dev",
     "test": "npm run test --prefix server",
-    "test:client": "npm test --prefix client -- --watchAll=false"
+    "test:client": "npm run test:ci --prefix client",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.js",
+    "test:e2e:ui": "playwright test --config tests/e2e/playwright.config.js --ui",
+    "test:e2e:install": "playwright install",
+    "test:ci": "npm test && npm run test:client && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
 

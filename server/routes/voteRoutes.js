@@ -14,6 +14,7 @@ const {
   announceWinner,
   getOfficialWinners,
   getWinnersHistory,
+  getPublicVoteSummary,
   checkEmployeeEligibility,
   castVote,
   sendVoteInvites,
@@ -42,6 +43,7 @@ router.get("/:id/official-winners", requireAuth, getOfficialWinners);
 router.post("/:id/announce-winner", requireAuth, announceWinner);
 
 // 🔹 Normal voting (with employee ID on form) – PUBLIC
+router.get("/:id/public-summary", getPublicVoteSummary);
 router.post("/:id/check-employee", checkEmployeeEligibility);
 router.post("/:id/cast", castVote);
 

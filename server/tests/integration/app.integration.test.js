@@ -3,54 +3,30 @@
  * Run: cd server && npm test
  */
 const request = require("supertest");
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
-
-process.env.NODE_ENV = "test";
-process.env.JWT_SECRET = process.env.JWT_SECRET || "jest-jwt-secret-min-32-chars-long";
+const {
+  startMemoryMongoAndApp,
+  clearAllCollections,
+  stopMemoryMongoAndApp,
+} = require("../helpers/memoryMongoApp");
+const { registerUser, login } = require("../helpers/httpTestUtils");
 
 let app;
-let mongoServer;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  process.env.MONGODB_URI = mongoServer.getUri();
-  await mongoose.connect(process.env.MONGODB_URI);
-  // eslint-disable-next-line global-require
-  app = require("../../app");
+  app = await startMemoryMongoAndApp();
 });
 
 afterAll(async () => {
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  if (mongoServer) await mongoServer.stop();
+  await stopMemoryMongoAndApp();
 });
 
 beforeEach(async () => {
-  const cols = mongoose.connection.collections;
-  await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
+  await clearAllCollections();
 });
-
-async function registerUser(overrides = {}) {
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const body = {
-    username: `u${suffix}`,
-    email: `user${suffix}@test.local`,
-    password: "password1",
-    ...overrides,
-  };
-  const res = await request(app).post("/api/auth/register").send(body);
-  return { res, body };
-}
-
-async function login(email, password = "password1") {
-  const res = await request(app).post("/api/auth/login").send({ email, password });
-  return res;
-}
 
 describe("POST /api/auth/register", () => {
   it("creates user (201)", async () => {
-    const { res, body } = await registerUser();
+    const { res, body } = await registerUser(app);
     expect(res.status).toBe(201);
     expect(res.body.user.email).toBe(body.email);
     expect(res.body.token).toBeUndefined();
@@ -64,7 +40,7 @@ describe("POST /api/auth/register", () => {
   });
 
   it("rejects duplicate email", async () => {
-    const { body } = await registerUser();
+    const { body } = await registerUser(app);
     const res = await request(app)
       .post("/api/auth/register")
       .send({
@@ -78,16 +54,16 @@ describe("POST /api/auth/register", () => {
 
 describe("POST /api/auth/login", () => {
   it("returns JWT on success", async () => {
-    const { body } = await registerUser();
-    const res = await login(body.email);
+    const { body } = await registerUser(app);
+    const res = await login(app, body.email);
     expect(res.status).toBe(200);
     expect(res.body.token).toBeTruthy();
     expect(res.body.user.email).toBe(body.email);
   });
 
   it("rejects wrong password", async () => {
-    const { body } = await registerUser();
-    const res = await login(body.email, "wrongpass");
+    const { body } = await registerUser(app);
+    const res = await login(app, body.email, "wrongpass");
     expect(res.status).toBe(400);
   });
 });
@@ -109,8 +85,8 @@ describe("Auth-protected API", () => {
   });
 
   it("GET /api/locations returns 200 with token (empty)", async () => {
-    const { body } = await registerUser();
-    const loginRes = await login(body.email);
+    const { body } = await registerUser(app);
+    const loginRes = await login(app, body.email);
     const res = await request(app)
       .get("/api/locations")
       .set("Authorization", `Bearer ${loginRes.body.token}`);
@@ -123,8 +99,8 @@ describe("Locations CRUD (authenticated)", () => {
   let token;
 
   beforeEach(async () => {
-    const { body } = await registerUser();
-    const loginRes = await login(body.email);
+    const { body } = await registerUser(app);
+    const loginRes = await login(app, body.email);
     token = loginRes.body.token;
   });
 
@@ -154,8 +130,8 @@ describe("Votes + public voting endpoints", () => {
   let voteId;
 
   beforeEach(async () => {
-    const { body: u } = await registerUser();
-    const loginRes = await login(u.email);
+    const { body: u } = await registerUser(app);
+    const loginRes = await login(app, u.email);
     token = loginRes.body.token;
 
     const loc = await request(app)
@@ -224,8 +200,8 @@ describe("Votes + public voting endpoints", () => {
   });
 
   it("another user cannot see vote (403 or empty list)", async () => {
-    const { body: u2 } = await registerUser();
-    const login2 = await login(u2.email);
+    const { body: u2 } = await registerUser(app);
+    const login2 = await login(app, u2.email);
     const res = await request(app)
       .get("/api/votes")
       .set("Authorization", `Bearer ${login2.body.token}`);

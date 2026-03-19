@@ -130,9 +130,7 @@ const RegisterPage = () => {
           position: "relative",
           zIndex: 1,
         }}
-        bodyStyle={{
-          padding: 0,
-        }}
+        styles={{ body: { padding: 0 } }}
       >
         {/* Header Section */}
         <div
@@ -198,7 +196,7 @@ const RegisterPage = () => {
               border: "1px solid #bae6fd",
             }}
           >
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={8} style={{ width: "100%" }}>
               <Space>
                 <CheckCircleOutlined style={{ color: "#0284c7", fontSize: 16 }} />
                 <Text style={{ fontSize: 13, color: "#0369a1" }}>
@@ -371,7 +369,7 @@ const RegisterPage = () => {
               border: "1px solid #e5e7eb",
             }}
           >
-            <Space direction="vertical" size={4}>
+            <Space orientation="vertical" size={4}>
               <Text style={{ color: "#6b7280", fontSize: 14 }}>
                 Already have an account?
               </Text>

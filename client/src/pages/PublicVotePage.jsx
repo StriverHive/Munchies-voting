@@ -1,18 +1,31 @@
-// client/src/pages/PublicVotePage.jsx — immersive mobile-first voting UI
-import React, { useState, useCallback, useMemo } from "react";
+// client/src/pages/PublicVotePage.jsx — Midnight Editorial Ballot (public employee-ID flow)
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import api from "../api";
 import { useParams } from "react-router-dom";
 import {
   LogoHeader,
   RemoteSuccessLottie,
   initials,
-  hueFromString,
+  nomineeAvatarClass,
 } from "../components/voting/VotingUiShared";
 import AppBrandLogo, { BRAND_NAME } from "../components/AppBrandLogo";
+import {
+  IconShield,
+  IconLock,
+  IconClock,
+  IconIdCard,
+  IconUsers,
+  IconAward,
+  IconCheckCircle,
+} from "../components/voting/BallotIcons";
 import "./PublicVotePage.css";
 
 const PublicVotePage = () => {
   const { voteId } = useParams();
+
+  const [pollSummary, setPollSummary] = useState(null);
+  const [pollLoading, setPollLoading] = useState(true);
+  const [pollError, setPollError] = useState(false);
 
   const [step, setStep] = useState("enterEmployeeId");
   const [checking, setChecking] = useState(false);
@@ -23,6 +36,39 @@ const PublicVotePage = () => {
   const [selectedNomineeIds, setSelectedNomineeIds] = useState([]);
   const [employeeIdInput, setEmployeeIdInput] = useState("");
   const [errorText, setErrorText] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSummary() {
+      if (!voteId) {
+        setPollLoading(false);
+        setPollError(true);
+        return;
+      }
+      setPollLoading(true);
+      setPollError(false);
+      try {
+        const res = await api.get(`/votes/${voteId}/public-summary`);
+        if (!cancelled) {
+          setPollSummary(res.data);
+        }
+      } catch {
+        if (!cancelled) {
+          setPollSummary(null);
+          setPollError(true);
+        }
+      } finally {
+        if (!cancelled) setPollLoading(false);
+      }
+    }
+    loadSummary();
+    return () => {
+      cancelled = true;
+    };
+  }, [voteId]);
+
+  const phase = pollSummary?.phase;
+  const pollOpen = phase === "open";
 
   const handleCheckEmployee = async (e) => {
     e?.preventDefault?.();
@@ -116,211 +162,297 @@ const PublicVotePage = () => {
     [selectedNomineeIds]
   );
 
+  const ruleLine =
+    maxVotes === 1
+      ? "Select 1 nominee"
+      : `Select up to ${maxVotes} nominees`;
+
+  const contextDesc = () => {
+    if (step === "done") {
+      return "Your vote has been recorded securely.";
+    }
+    if (step === "voting") {
+      return "Review your ballot and submit when ready. Your vote is final once submitted.";
+    }
+    return "Verify your employee ID to continue.";
+  };
+
+  const pollTitle =
+    pollSummary?.name ||
+    (pollError ? "Ballot unavailable" : "Employee ballot");
+
   return (
-    <div className="pv-root">
-      <div className="pv-bg" aria-hidden />
-      <div className="pv-orbs" aria-hidden>
-        <span />
-        <span />
-        <span />
+    <div className="ballot-root">
+      <div className="ballot-bg" aria-hidden />
+      <div className="ballot-vignette" aria-hidden />
+
+      <div className="ballot-shell">
+        <aside className="ballot-context">
+          <LogoHeader />
+          <p className="ballot-eyebrow">
+            <IconShield />
+            Private employee ballot
+          </p>
+          {pollLoading ? (
+            <div className="ballot-skeleton-title" aria-hidden />
+          ) : (
+            <h1 className="ballot-poll-title">{pollTitle}</h1>
+          )}
+          <p className="ballot-context-desc">{contextDesc()}</p>
+          <div className="ballot-trust-chips">
+            <span className="ballot-chip">
+              <IconLock />
+              Private
+            </span>
+            <span className="ballot-chip">
+              <IconClock />
+              ~ 1 min
+            </span>
+            <span className="ballot-chip">
+              <IconCheckCircle />
+              Secure submission
+            </span>
+          </div>
+        </aside>
+
+        <main className="ballot-main">
+          <div className="ballot-card">
+            {pollLoading && (
+              <div className="ballot-loading">
+                <div className="ballot-spinner" aria-hidden />
+                <p className="ballot-loading-text">Loading ballot…</p>
+              </div>
+            )}
+
+            {!pollLoading && pollError && (
+              <div className="ballot-step">
+                <div className="ballot-phase-banner" role="alert">
+                  This ballot link is invalid or no longer available.
+                </div>
+                <p className="ballot-helper" style={{ marginTop: 16 }}>
+                  Check the link you were sent or contact your organizer.
+                </p>
+              </div>
+            )}
+
+            {!pollLoading && !pollError && !pollOpen && step === "enterEmployeeId" && (
+              <div className="ballot-step">
+                <div className="ballot-phase-banner" role="status">
+                  {phase === "upcoming"
+                    ? "Voting has not started yet."
+                    : "Voting has ended."}
+                </div>
+                <p className="ballot-helper" style={{ marginTop: 16 }}>
+                  Please return at the time communicated by your team.
+                </p>
+              </div>
+            )}
+
+            {!pollLoading &&
+              !pollError &&
+              pollOpen &&
+              step === "enterEmployeeId" && (
+                <div className="ballot-step" key="id">
+                  <form onSubmit={handleCheckEmployee} noValidate>
+                    <div className="ballot-field">
+                      <label className="ballot-label" htmlFor="ballot-employee-id">
+                        <IconIdCard />
+                        Employee ID
+                      </label>
+                      <input
+                        id="ballot-employee-id"
+                        className="ballot-input"
+                        placeholder="Enter your employee ID"
+                        value={employeeIdInput}
+                        onChange={(e) => {
+                          setEmployeeIdInput(e.target.value);
+                          if (errorText) setErrorText(null);
+                        }}
+                        autoComplete="username"
+                        autoCapitalize="characters"
+                        inputMode="text"
+                        disabled={checking}
+                        aria-invalid={errorText ? "true" : "false"}
+                        aria-describedby={
+                          errorText ? "ballot-id-error" : "ballot-id-hint"
+                        }
+                      />
+                      <p id="ballot-id-hint" className="ballot-helper">
+                        Use the same ID used for scheduling or payroll.
+                      </p>
+                      {errorText && (
+                        <p id="ballot-id-error" className="ballot-field-error">
+                          {errorText}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="submit"
+                      className="ballot-btn"
+                      disabled={checking}
+                    >
+                      {checking ? "Verifying…" : "Continue"}
+                    </button>
+                    <p className="ballot-reassurance">
+                      <IconLock />
+                      Your ID is only used to verify eligibility for this poll.
+                    </p>
+                  </form>
+                </div>
+              )}
+
+            {!pollLoading && !pollError && pollOpen && step === "voting" && voteData && voter && (
+              <div className="ballot-step ballot-step--voting" key="vote">
+                {errorText && (
+                  <div className="ballot-alert" role="alert">
+                    <span style={{ flex: 1 }}>{errorText}</span>
+                    <button
+                      type="button"
+                      className="ballot-dismiss"
+                      aria-label="Dismiss"
+                      onClick={() => setErrorText(null)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                <div className="ballot-receipt">
+                  <div className="ballot-receipt-row">
+                    <span className="ballot-receipt-icon">
+                      <IconAward />
+                    </span>
+                    <div>
+                      <strong>Poll</strong>
+                      <div>{voteData.name}</div>
+                    </div>
+                  </div>
+                  <div className="ballot-receipt-row">
+                    <span className="ballot-receipt-icon">
+                      <IconUsers />
+                    </span>
+                    <div>
+                      <strong>Verified voter</strong>
+                      <div>
+                        {voter.firstName} {voter.lastName}{" "}
+                        <span style={{ color: "var(--ballot-muted)" }}>
+                          ({voter.employeeId})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="ballot-rule-line">{ruleLine}</p>
+                  <p className="ballot-security-note">
+                    Your vote is final once submitted and stored securely.
+                  </p>
+                </div>
+
+                <div className="ballot-nominee-scroll">
+                  <div className="ballot-select-strip">
+                    {selectedNomineeIds.length >= maxVotes
+                      ? `${maxVotes} of ${maxVotes} selected`
+                      : maxVotes === 1
+                        ? "Choose 1 nominee"
+                        : `Choose up to ${maxVotes} nominees`}{" "}
+                    · {selectedNomineeIds.length} selected
+                  </div>
+
+                  <div className="ballot-nominees" role="group" aria-label="Nominees">
+                    {(voteData.nominees || []).map((nominee, index) => {
+                      const idStr = String(nominee._id);
+                      const selected = selectedSet.has(idStr);
+                      return (
+                        <button
+                          key={nominee._id}
+                          type="button"
+                          className={`ballot-nominee${selected ? " ballot-nominee--selected" : ""}`}
+                          onClick={() => toggleNominee(nominee._id)}
+                          aria-pressed={selected}
+                        >
+                          <div
+                            className={nomineeAvatarClass(index)}
+                            aria-hidden
+                          >
+                            {initials(nominee.firstName, nominee.lastName)}
+                          </div>
+                          <div className="ballot-nominee-text">
+                            <p className="ballot-nominee-name">
+                              {nominee.firstName} {nominee.lastName}
+                            </p>
+                            <p className="ballot-nominee-id">
+                              ID {nominee.employeeId}
+                            </p>
+                          </div>
+                          <span className="ballot-nominee-check" aria-hidden>
+                            <IconCheckCircle filled={selected} />
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="ballot-inline-submit">
+                  <button
+                    type="button"
+                    className="ballot-btn"
+                    onClick={handleSubmitVote}
+                    disabled={submitting || selectedNomineeIds.length === 0}
+                  >
+                    {submitting ? "Submitting…" : "Submit vote"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!pollLoading && !pollError && pollOpen && step === "done" && voteData && voter && (
+              <div className="ballot-success" key="done">
+                <RemoteSuccessLottie />
+                <h2 className="ballot-success-title">Vote recorded</h2>
+                <p className="ballot-success-lead">
+                  Your vote for <strong>{voteData.name}</strong> has been
+                  submitted securely.
+                </p>
+                <p className="ballot-success-detail">
+                  Thank you, {voter.firstName} {voter.lastName}.
+                </p>
+                <p className="ballot-success-detail">
+                  You can now close this page.
+                </p>
+                <p className="ballot-success-foot">
+                  <IconShield />
+                  Encrypted, one-time submission for this poll.
+                </p>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
 
-      <div className="pv-inner">
-        <header className="pv-header">
-          <p className="pv-kicker">Secure ballot</p>
-          <LogoHeader />
-          <h1 className="pv-title">Employee Voting Portal</h1>
-          <p className="pv-subtitle">
-            Your voice matters. Verify your ID, then cast your vote in a few
-            taps — optimized for your phone.
-          </p>
-        </header>
-
-        <div className="pv-card">
-          {step === "enterEmployeeId" && (
-            <div className="pv-step" key="id">
-              {errorText && (
-                <div className="pv-error" role="alert">
-                  <span className="pv-error-icon" aria-hidden>
-                    ⚠
-                  </span>
-                  <span style={{ flex: 1 }}>{errorText}</span>
-                  <button
-                    type="button"
-                    className="pv-dismiss"
-                    aria-label="Dismiss"
-                    onClick={() => setErrorText(null)}
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-
-              <form onSubmit={handleCheckEmployee}>
-                <label className="pv-label" htmlFor="pv-employee-id">
-                  Employee ID
-                </label>
-                <input
-                  id="pv-employee-id"
-                  className="pv-input"
-                  placeholder="e.g. 5555 or EMP-001"
-                  value={employeeIdInput}
-                  onChange={(e) => setEmployeeIdInput(e.target.value)}
-                  autoComplete="username"
-                  autoCapitalize="characters"
-                  inputMode="text"
-                  disabled={checking}
-                />
-                <button
-                  type="submit"
-                  className="pv-btn"
-                  disabled={checking}
-                >
-                  {checking ? "Verifying…" : "Continue to vote"}
-                </button>
-              </form>
+      {!pollLoading && !pollError && pollOpen && step === "voting" && voteData && voter && (
+        <div className="ballot-sticky-actions">
+          <div className="ballot-sticky-inner">
+            <div className="ballot-sticky-meta">
+              {selectedNomineeIds.length} of {maxVotes} selected
+              {maxVotes > 1 ? " nominees" : " nominee"}
             </div>
-          )}
-
-          {step === "voting" && voteData && voter && (
-            <div className="pv-step" key="vote">
-              {errorText && (
-                <div className="pv-error" role="alert">
-                  <span className="pv-error-icon" aria-hidden>
-                    ⚠
-                  </span>
-                  <span style={{ flex: 1 }}>{errorText}</span>
-                  <button
-                    type="button"
-                    className="pv-dismiss"
-                    aria-label="Dismiss"
-                    onClick={() => setErrorText(null)}
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-
-              <div className="pv-meta">
-                <div className="pv-meta-row">
-                  <span className="pv-meta-icon" aria-hidden>
-                    🏆
-                  </span>
-                  <div>
-                    <strong>Poll</strong>
-                    <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
-                      {voteData.name}
-                    </div>
-                  </div>
-                </div>
-                <div className="pv-meta-row">
-                  <span className="pv-meta-icon" aria-hidden>
-                    👤
-                  </span>
-                  <div>
-                    <strong>Voter</strong>
-                    <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
-                      {voter.firstName} {voter.lastName}{" "}
-                      <span style={{ opacity: 0.85 }}>
-                        ({voter.employeeId})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="pv-meta-row">
-                  <span className="pv-meta-icon" aria-hidden>
-                    ℹ️
-                  </span>
-                  <div>
-                    <strong>Rules</strong>
-                    <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
-                      Select up to {maxVotes} nominee
-                      {maxVotes > 1 ? "s" : ""}. Each choice awards{" "}
-                      {voteData.votePoints || 1} point
-                      {(voteData.votePoints || 1) > 1 ? "s" : ""}.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <h2 className="pv-section-title">Select your nominee(s)</h2>
-              <div className="pv-nominees" role="group" aria-label="Nominees">
-                {(voteData.nominees || []).map((nominee) => {
-                  const idStr = String(nominee._id);
-                  const selected = selectedSet.has(idStr);
-                  const hue = hueFromString(
-                    `${nominee.employeeId}-${nominee.firstName}`
-                  );
-                  return (
-                    <button
-                      key={nominee._id}
-                      type="button"
-                      className={`pv-nominee${selected ? " pv-nominee--selected" : ""}`}
-                      onClick={() => toggleNominee(nominee._id)}
-                      aria-pressed={selected}
-                    >
-                      <div
-                        className="pv-avatar"
-                        style={{
-                          background: `linear-gradient(145deg, hsl(${hue}, 62%, 48%), hsl(${(hue + 40) % 360}, 55%, 42%))`,
-                        }}
-                      >
-                        {initials(nominee.firstName, nominee.lastName)}
-                      </div>
-                      <div className="pv-nominee-text">
-                        <p className="pv-nominee-name">
-                          {nominee.firstName} {nominee.lastName}
-                        </p>
-                        <p className="pv-nominee-id">
-                          ID {nominee.employeeId}
-                        </p>
-                      </div>
-                      <span className="pv-check" aria-hidden>
-                        {selected ? "✓" : ""}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <p className="pv-counter">
-                {selectedNomineeIds.length} of {maxVotes} nominee
-                {maxVotes > 1 ? "s" : ""} selected
-              </p>
-
-              <button
-                type="button"
-                className="pv-btn"
-                onClick={handleSubmitVote}
-                disabled={submitting || selectedNomineeIds.length === 0}
-              >
-                {submitting ? "Submitting…" : "Submit vote"}
-              </button>
-            </div>
-          )}
-
-          {step === "done" && (
-            <div className="pv-step pv-success" key="done">
-              <RemoteSuccessLottie />
-              <h2 className="pv-success-title">Thank you!</h2>
-              <p className="pv-success-msg">
-                Your vote was recorded successfully. Thank you for
-                participating — you can close this page when you&apos;re done.
-              </p>
-            </div>
-          )}
+            <button
+              type="button"
+              className="ballot-btn"
+              onClick={handleSubmitVote}
+              disabled={submitting || selectedNomineeIds.length === 0}
+            >
+              {submitting ? "Submitting…" : "Submit vote"}
+            </button>
+          </div>
         </div>
+      )}
 
-        <div className="pv-footer-brand">
-          <AppBrandLogo
-            alt=""
-            aria-hidden
-            className="pv-footer-logo"
-          />
-          <span className="pv-footer-note">
-            {BRAND_NAME} · Secure · {new Date().getFullYear()}
-          </span>
-        </div>
+      <div className="ballot-footer-brand">
+        <AppBrandLogo alt="" aria-hidden className="ballot-footer-logo" />
+        <span className="ballot-footer-note">
+          {BRAND_NAME} · Secure · {new Date().getFullYear()}
+        </span>
       </div>
     </div>
   );

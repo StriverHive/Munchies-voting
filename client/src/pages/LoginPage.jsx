@@ -101,9 +101,7 @@ const LoginPage = ({ onLoginSuccess }) => {
           position: "relative",
           zIndex: 1,
         }}
-        bodyStyle={{
-          padding: 0,
-        }}
+        styles={{ body: { padding: 0 } }}
       >
         {/* Header Section */}
         <div
@@ -246,7 +244,7 @@ const LoginPage = ({ onLoginSuccess }) => {
               border: "1px solid #e5e7eb",
             }}
           >
-            <Space direction="vertical" size={4}>
+            <Space orientation="vertical" size={4}>
               <Text style={{ color: "#6b7280", fontSize: 14 }}>
                 Don't have an account?
               </Text>

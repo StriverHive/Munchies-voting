@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
-const { createdByFilter, canModify } = require("../../middleware/authMiddleware");
+const {
+  createdByFilter,
+  canModify,
+} = require("../../middleware/authMiddleware");
 
 describe("authMiddleware helpers", () => {
   const userId = new mongoose.Types.ObjectId();
@@ -24,7 +27,9 @@ describe("authMiddleware helpers", () => {
     });
 
     it("allows legacy doc (no createdBy)", () => {
-      expect(canModify({ createdBy: null }, { user: { _id: userId } })).toBe(true);
+      expect(canModify({ createdBy: null }, { user: { _id: userId } })).toBe(
+        true
+      );
       expect(canModify({}, { user: { _id: userId } })).toBe(true);
     });
 

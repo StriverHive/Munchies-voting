@@ -1,13 +1,12 @@
 // Shared immersive voting UI pieces (PublicVotePage + InviteVotePage)
 import React, { useState, useEffect } from "react";
 import Lottie from "lottie-react";
-import AppBrandLogo, { BRAND_NAME } from "../AppBrandLogo";
+import AppBrandLogo, { BRAND_NAME, PUBLIC_URL } from "../AppBrandLogo";
 
 export { PUBLIC_URL } from "../AppBrandLogo";
 
-/** Lottie: success (CDN); falls back to CSS checkmark if fetch/CORS fails */
-export const SUCCESS_LOTTIE_URL =
-  "https://assets9.lottiefiles.com/packages/lf20_aEFaHc.json";
+/** Bundled success animation (public folder); avoids CDN dependency */
+export const SUCCESS_LOTTIE_LOCAL = `${PUBLIC_URL}/lottie/vote-success.json`;
 
 export function useRemoteLottie(url) {
   const [data, setData] = useState(null);
@@ -34,38 +33,61 @@ export function initials(firstName, lastName) {
   return (a + (b || a)).toUpperCase().slice(0, 2);
 }
 
-export function hueFromString(str) {
-  let h = 0;
-  const s = String(str || "");
-  for (let i = 0; i < s.length; i += 1) {
-    h = s.charCodeAt(i) + ((h << 5) - h);
-  }
-  return Math.abs(h) % 360;
+/** Navy / pink-tint avatar backgrounds (brand system, not random hues) */
+export function nomineeAvatarClass(index) {
+  return index % 2 === 0
+    ? "ballot-avatar ballot-avatar--navy"
+    : "ballot-avatar ballot-avatar--blush";
 }
 
 export function LogoHeader() {
   return (
-    <div className="pv-logo-wrap">
-      <AppBrandLogo alt={BRAND_NAME} className="pv-logo" />
+    <div className="ballot-logo-wrap">
+      <AppBrandLogo alt={BRAND_NAME} className="ballot-logo" />
+    </div>
+  );
+}
+
+function SuccessMarkFallback() {
+  return (
+    <div className="ballot-lottie-fallback" aria-hidden>
+      <div className="ballot-success-mark">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.75" />
+          <path
+            d="M8 12l2.5 2.5L16 9"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
     </div>
   );
 }
 
 export function RemoteSuccessLottie() {
-  const animationData = useRemoteLottie(SUCCESS_LOTTIE_URL);
-  if (!animationData) {
-    return (
-      <div className="pv-lottie-fallback" aria-hidden>
-        <div className="pv-success-icon">✓</div>
-      </div>
-    );
+  const animationData = useRemoteLottie(SUCCESS_LOTTIE_LOCAL);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduceMotion(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+
+  if (reduceMotion || !animationData) {
+    return <SuccessMarkFallback />;
   }
   return (
-    <div className="pv-success-lottie">
+    <div className="ballot-lottie">
       <Lottie
         animationData={animationData}
         loop={false}
-        style={{ width: "100%", maxHeight: 200 }}
+        style={{ width: "100%", maxHeight: 220 }}
       />
     </div>
   );

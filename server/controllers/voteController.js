@@ -1,5 +1,6 @@
 // server/controllers/voteController.js
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const Vote = require("../models/Vote");
 const VoteCast = require("../models/VoteCast");
 const Location = require("../models/Location");
@@ -1370,6 +1371,36 @@ const getWinnersHistory = async (req, res) => {
     return res.status(500).json({
       message: "Server error while fetching winners history",
     });
+  }
+};
+
+// GET /api/votes/:id/public-summary — PUBLIC: poll title + phase only (for ballot landing UI)
+const getPublicVoteSummary = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: "Vote not found" });
+    }
+
+    const vote = await Vote.findById(id).select("name startAt endAt");
+    if (!vote) {
+      return res.status(404).json({ message: "Vote not found" });
+    }
+
+    const now = new Date();
+    let phase = "open";
+    if (now < vote.startAt) phase = "upcoming";
+    else if (now > vote.endAt) phase = "closed";
+
+    return res.json({
+      name: vote.name,
+      phase,
+      startAt: vote.startAt,
+      endAt: vote.endAt,
+    });
+  } catch (error) {
+    console.error("getPublicVoteSummary error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -2881,6 +2912,7 @@ module.exports = {
   announceWinner,
   getOfficialWinners,
   getWinnersHistory,
+  getPublicVoteSummary,
   checkEmployeeEligibility,
   castVote,
   sendVoteInvites,

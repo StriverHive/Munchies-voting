@@ -2,6 +2,9 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@testing-library/dom": "^10.4.1",
@@ -21,7 +24,19 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:ci": "cross-env CI=true react-scripts test --watchAll=false",
     "eject": "react-scripts eject"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(@rc-component|antd|@ant-design|rc-util|rc-pagination|rc-picker)/)"
+    ],
+    "moduleNameMapper": {
+      "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
+      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js",
+      "^@rc-component/picker/locale/en_US$": "<rootDir>/node_modules/@rc-component/picker/lib/locale/en_US.js",
+      "^@rc-component/picker/generate/dayjs$": "<rootDir>/node_modules/@rc-component/picker/lib/generate/dayjs.js"
+    }
   },
   "eslintConfig": {
     "extends": [
