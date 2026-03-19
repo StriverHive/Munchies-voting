@@ -8,6 +8,7 @@ import {
   Space,
   Modal,
   message,
+  Spin,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -149,6 +150,17 @@ const AllVotesPage = () => {
 
   const loadingAny = loadingVotes || loadingEmployees;
 
+  // Warn user if they try to refresh/close while emails are sending
+  useEffect(() => {
+    if (!sendInvitesModalLoading) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [sendInvitesModalLoading]);
+
   const goBackToVotingManagement = () => {
     navigate("/voting");
   };
@@ -178,6 +190,7 @@ const AllVotesPage = () => {
   };
 
   const closeSendInvitesModal = () => {
+    if (sendInvitesModalLoading) return; // prevent close while sending
     setSendInvitesModalVisible(false);
     setCurrentVoteForInvites(null);
     setSelectedInviteEmployeeIds([]);
@@ -714,6 +727,27 @@ const AllVotesPage = () => {
         </Card>
       </Card>
 
+      {/* Full-page overlay when sending emails */}
+      {sendInvitesModalLoading && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(255,255,255,0.9)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+          }}
+        >
+          <Spin size="large" />
+          <Text strong style={{ fontSize: 16 }}>Sending emails…</Text>
+          <Text type="secondary">This may take a while. Please do not refresh or close this page.</Text>
+        </div>
+      )}
+
       {/* Send Invites Modal */}
       <Modal
         title={
@@ -726,8 +760,15 @@ const AllVotesPage = () => {
         onOk={confirmSendInvites}
         confirmLoading={sendInvitesModalLoading}
         okText="Send"
+        maskClosable={!sendInvitesModalLoading}
+        closable={!sendInvitesModalLoading}
       >
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          {sendInvitesModalLoading && (
+            <div style={{ padding: "12px 0", textAlign: "center" }}>
+              <Text type="secondary">Sending… Please do not refresh or close this page.</Text>
+            </div>
+          )}
           <Radio.Group
             value={sendModeSelection}
             onChange={(e) => setSendModeSelection(e.target.value)}

@@ -1,4 +1,4 @@
-// MongoDB shell script: set createdBy for all existing locations and employees
+// MongoDB shell script: set createdBy for all existing locations, employees, and votes
 // Run with: mongosh "your_connection_string" your_db_name --file server/scripts/set-created-by-legacy.js
 // Or paste the commands below into mongosh after switching to your database.
 
@@ -17,5 +17,12 @@ const empResult = db.employees.updateMany(
   { $set: { createdBy: CREATED_BY_USER_ID } }
 );
 print("Employees modified: " + empResult.modifiedCount);
+
+print("Updating votes...");
+const voteResult = db.votes.updateMany(
+  { $or: [{ createdBy: null }, { createdBy: { $exists: false } }] },
+  { $set: { createdBy: CREATED_BY_USER_ID } }
+);
+print("Votes modified: " + voteResult.modifiedCount);
 
 print("Done.");
