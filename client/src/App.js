@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import {
   Layout,
-  Typography,
   Menu,
   Dropdown,
   Avatar,
@@ -29,6 +28,7 @@ import PublicVotePage from "./pages/PublicVotePage";
 import EmailTestPage from "./pages/EmailTestPage";
 import InviteVotePage from "./pages/InviteVotePage";
 import AllVotesPage from "./pages/AllVotesPage";
+import AppBrandLogo, { BRAND_NAME } from "./components/AppBrandLogo";
 
 import {
   DashboardOutlined,
@@ -38,81 +38,115 @@ import {
 } from "@ant-design/icons";
 
 const { Header, Content, Footer, Sider } = Layout;
-const { Title } = Typography;
 
 /* ===========================
    PUBLIC LAYOUT
    (login, register, public vote)
    =========================== */
 
-const PublicShell = ({ children, maxWidth = 480 }) => (
-  <Layout
-    style={{
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      background: "#f8fafc",
-      position: "relative",
-    }}
-  >
-    <Header
-      style={{
-        background: "#ffffff",
-        borderBottom: "1px solid #e2e8f0",
-        padding: "0 24px",
-        display: "flex",
-        alignItems: "center",
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
-        height: 64,
-      }}
-    >
-      <Title
-        level={4}
+const PublicShell = ({ children, maxWidth = 480, variant = "default" }) => {
+  if (variant === "immersive") {
+    return (
+      <Layout
         style={{
-          color: "#1e293b",
+          minHeight: "100vh",
           margin: 0,
-          fontWeight: 600,
-          fontSize: 18,
+          padding: 0,
+          background: "transparent",
         }}
       >
-        Munchies Voting System
-      </Title>
-    </Header>
+        <Content style={{ margin: 0, padding: 0, minHeight: "100vh" }}>
+          {children}
+        </Content>
+      </Layout>
+    );
+  }
 
-    <Content
+  return (
+    <Layout
       style={{
-        padding: "40px 16px",
+        minHeight: "100vh",
         display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flex: 1,
+        flexDirection: "column",
         background: "#f8fafc",
+        position: "relative",
       }}
     >
-      <div
+      <Header
         style={{
-          width: "100%",
-          maxWidth,
+          background: "#ffffff",
+          borderBottom: "1px solid #e2e8f0",
+          padding: "0 24px",
+          display: "flex",
+          alignItems: "center",
+          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+          height: 64,
         }}
       >
-        {children}
-      </div>
-    </Content>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <AppBrandLogo
+            alt={BRAND_NAME}
+            style={{ height: 36, width: "auto", maxWidth: 200 }}
+          />
+        </div>
+      </Header>
 
-    <Footer
-      style={{
-        textAlign: "center",
-        padding: "16px 8px",
-        fontSize: 13,
-        background: "#ffffff",
-        borderTop: "1px solid #e2e8f0",
-        color: "#64748b",
-      }}
-    >
-      Munchies Voting System © {new Date().getFullYear()}
-    </Footer>
-  </Layout>
-);
+      <Content
+        style={{
+          padding: "40px 16px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          flex: 1,
+          background: "#f8fafc",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth,
+          }}
+        >
+          {children}
+        </div>
+      </Content>
+
+      <Footer
+        style={{
+          textAlign: "center",
+          padding: "16px 8px",
+          fontSize: 13,
+          background: "#ffffff",
+          borderTop: "1px solid #e2e8f0",
+          color: "#64748b",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <AppBrandLogo
+            alt=""
+            aria-hidden
+            style={{ height: 22, width: "auto", maxWidth: 140, opacity: 0.9 }}
+          />
+          <span>© {new Date().getFullYear()} · Secure voting</span>
+        </div>
+      </Footer>
+    </Layout>
+  );
+};
 
 /* ===========================
    AUTHENTICATED LAYOUT
@@ -239,13 +273,12 @@ const AuthedShell = ({ children, selectedKey, user, onLogout }) => {
               e.currentTarget.style.opacity = "1";
             }}
           >
-            <img
-              src="/munchies-logo.png"
-              alt="Munchies Voting App"
+            <AppBrandLogo
+              alt={BRAND_NAME}
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "contain",
+                maxHeight: 72,
               }}
             />
           </div>
@@ -289,32 +322,52 @@ const AuthedShell = ({ children, selectedKey, user, onLogout }) => {
               justifyContent: "space-between",
             }}
           >
-            {/* Left side: title + subtitle */}
+            {/* Left: brand + page context */}
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                gap: 2,
+                alignItems: "center",
+                gap: 14,
+                minWidth: 0,
               }}
             >
-              <span
+              <AppBrandLogo
+                alt=""
+                aria-hidden
                 style={{
-                  fontSize: 18,
-                  fontWeight: 600,
-                  color: "#1e293b",
+                  height: 32,
+                  width: "auto",
+                  maxWidth: 160,
+                  flexShrink: 0,
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  gap: 2,
+                  minWidth: 0,
                 }}
               >
-                Voting System
-              </span>
-              <span
-                style={{
-                  fontSize: 14,
-                  color: "#64748b",
-                }}
-              >
-                Manage locations, employees and voting sessions
-              </span>
+                <span
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: "#1e293b",
+                  }}
+                >
+                  Admin console
+                </span>
+                <span
+                  style={{
+                    fontSize: 14,
+                    color: "#64748b",
+                  }}
+                >
+                  Locations, employees & voting sessions
+                </span>
+              </div>
             </div>
 
             {/* Right side: avatar with dropdown menu */}
@@ -624,7 +677,7 @@ function App() {
         <Route
           path="/vote/:voteId"
           element={
-            <PublicShell maxWidth={800}>
+            <PublicShell variant="immersive">
               <PublicVotePage />
             </PublicShell>
           }
@@ -632,7 +685,7 @@ function App() {
         <Route
           path="/vote/:voteId/invite/:token"
           element={
-            <PublicShell maxWidth={800}>
+            <PublicShell variant="immersive">
               <InviteVotePage />
             </PublicShell>
           }

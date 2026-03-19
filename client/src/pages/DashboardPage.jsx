@@ -15,6 +15,7 @@ import {
   CrownOutlined,
   BarChartOutlined,
 } from "@ant-design/icons";
+import AppBrandLogo from "../components/AppBrandLogo";
 
 const { Title, Text } = Typography;
 
@@ -98,14 +99,7 @@ const DashboardPage = ({ user }) => {
   return (
     <Card style={mainCardStyle} bodyStyle={{ padding: 32 }}>
       {/* Background Logo */}
-      <img
-        src="/munchies-logo.png"
-        alt=""
-        style={logoOverlayStyle}
-        onError={(e) => {
-          e.target.style.display = "none";
-        }}
-      />
+      <AppBrandLogo alt="" aria-hidden style={logoOverlayStyle} />
 
       <div style={contentWrapperStyle}>
         {/* Header Section */}

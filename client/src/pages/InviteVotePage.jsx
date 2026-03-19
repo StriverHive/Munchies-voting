@@ -1,26 +1,15 @@
-// client/src/pages/InviteVotePage.jsx
-import React, { useEffect, useState } from "react";
-import {
-  Card,
-  Typography,
-  Alert,
-  Checkbox,
-  Button,
-  Spin,
-  message as antMessage,
-  Space,
-  Divider,
-} from "antd";
-import {
-  CheckCircleOutlined,
-  TrophyOutlined,
-  UserOutlined,
-  InfoCircleOutlined,
-} from "@ant-design/icons";
+// client/src/pages/InviteVotePage.jsx — same immersive UI as public vote (invite link)
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
-
-const { Title, Text } = Typography;
+import {
+  LogoHeader,
+  RemoteSuccessLottie,
+  initials,
+  hueFromString,
+} from "../components/voting/VotingUiShared";
+import AppBrandLogo, { BRAND_NAME } from "../components/AppBrandLogo";
+import "./PublicVotePage.css";
 
 const InviteVotePage = () => {
   const { voteId, token } = useParams();
@@ -32,14 +21,11 @@ const InviteVotePage = () => {
   const [selectedNomineeIds, setSelectedNomineeIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-
-  // NEW: flag from backend
   const [isNominee, setIsNominee] = useState(false);
+  const [errorText, setErrorText] = useState(null);
 
   useEffect(() => {
     const fetchInvite = async () => {
-      console.log("InviteVotePage params:", { voteId, token });
-
       if (!voteId || !token) {
         setInviteError("Invalid voting link (missing parameters).");
         setLoading(false);
@@ -50,40 +36,30 @@ const InviteVotePage = () => {
         setLoading(true);
         setInviteError(null);
 
-        const res = await api.get(
-          `/votes/${voteId}/invite/${token}`
-        );
-
-        console.log("Invite details response:", res.data);
-
+        const res = await api.get(`/votes/${voteId}/invite/${token}`);
         const voteData = res.data.vote;
         const voterData = res.data.voter;
 
         setVote(voteData);
         setVoter(voterData);
 
-        // Use backend flag first
         let nomineeFlag = Boolean(voterData && voterData.isNominee);
 
-        // Fallback (in case of older backend): check by employeeId / _id
         if (!nomineeFlag && voteData && voteData.nominees && voterData) {
           nomineeFlag = (voteData.nominees || []).some((n) => {
             const byEmployeeId =
               n.employeeId && voterData.employeeId
                 ? String(n.employeeId) === String(voterData.employeeId)
                 : false;
-
             const byId =
               n._id && voterData._id
                 ? String(n._id) === String(voterData._id)
                 : false;
-
             return byEmployeeId || byId;
           });
         }
 
         setIsNominee(nomineeFlag);
-        setInviteError(null);
       } catch (error) {
         console.error("Invite details error:", error);
         const message =
@@ -98,569 +74,281 @@ const InviteVotePage = () => {
     fetchInvite();
   }, [voteId, token]);
 
-  const handleNomineeChange = (checkedValues) => {
-    setSelectedNomineeIds(checkedValues);
-  };
+  const maxVotes = vote?.maxVotesPerVoter || 1;
+  const votePoints = vote?.votePoints ?? 1;
+
+  const toggleNominee = useCallback(
+    (id) => {
+      const sid = String(id);
+      setSelectedNomineeIds((prev) => {
+        const has = prev.some((x) => String(x) === sid);
+        if (has) {
+          setErrorText(null);
+          return prev.filter((x) => String(x) !== sid);
+        }
+        if (prev.length >= maxVotes) {
+          setErrorText(
+            `You can select up to ${maxVotes} nominee${maxVotes > 1 ? "s" : ""} only.`
+          );
+          return prev;
+        }
+        setErrorText(null);
+        return [...prev, id];
+      });
+    },
+    [maxVotes]
+  );
 
   const handleSubmit = async () => {
     if (!vote) return;
-
     if (selectedNomineeIds.length === 0) {
-      antMessage.warning("Please select at least one nominee.");
+      setErrorText("Please select at least one nominee.");
       return;
     }
-
-    if (selectedNomineeIds.length > vote.maxVotesPerVoter) {
-      antMessage.error(
-        `You can select up to ${vote.maxVotesPerVoter} nominees.`
+    if (selectedNomineeIds.length > maxVotes) {
+      setErrorText(
+        `You can select up to ${maxVotes} nominee${maxVotes > 1 ? "s" : ""}.`
       );
       return;
     }
 
     try {
       setSubmitting(true);
-      const res = await api.post(
-        `/votes/${voteId}/invite/${token}/cast`,
-        {
-          nomineeIds: selectedNomineeIds,
-        }
-      );
-
-      antMessage.success(
-        res.data.message || "Your vote has been submitted."
-      );
+      setErrorText(null);
+      await api.post(`/votes/${voteId}/invite/${token}/cast`, {
+        nomineeIds: selectedNomineeIds,
+      });
       setHasSubmitted(true);
     } catch (error) {
       console.error("Cast vote with invite error:", error);
       const message =
         error.response?.data?.message ||
         "Failed to submit your vote. Please try again.";
-      antMessage.error(message);
+      setErrorText(message);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const selectedSet = useMemo(
+    () => new Set(selectedNomineeIds.map((x) => String(x))),
+    [selectedNomineeIds]
+  );
+
+  const shell = (cardBody) => (
+    <div className="pv-root">
+      <div className="pv-bg" aria-hidden />
+      <div className="pv-orbs" aria-hidden>
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="pv-inner">
+        <header className="pv-header">
+          <p className="pv-kicker">Personal invite</p>
+          <LogoHeader />
+          <h1 className="pv-title">Employee Voting Portal</h1>
+          <p className="pv-subtitle">
+            {inviteError || hasSubmitted
+              ? `Thanks for using ${BRAND_NAME}.`
+              : "Your voice matters. Cast your vote below — quick and mobile-friendly."}
+          </p>
+        </header>
+        <div className="pv-card">{cardBody}</div>
+        <div className="pv-footer-brand">
+          <AppBrandLogo
+            alt=""
+            aria-hidden
+            className="pv-footer-logo"
+          />
+          <span className="pv-footer-note">
+            {BRAND_NAME} · Secure · {new Date().getFullYear()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        }}
-      >
-        <Spin size="large" />
-        <Text style={{ color: "white", marginTop: 16, fontSize: 16 }}>
-          Loading voting details...
-        </Text>
+    return shell(
+      <div className="pv-step">
+        <div className="pv-loading-wrap">
+          <div className="pv-spinner" aria-hidden />
+          <p className="pv-loading-text">Loading voting details…</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {/* Animated background circles */}
-      <div
-        style={{
-          position: "absolute",
-          top: "-10%",
-          right: "-5%",
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: "rgba(255, 255, 255, 0.1)",
-          filter: "blur(60px)",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: "-10%",
-          left: "-5%",
-          width: 500,
-          height: 500,
-          borderRadius: "50%",
-          background: "rgba(255, 255, 255, 0.08)",
-          filter: "blur(80px)",
-        }}
-      />
-
-      <Card
-        style={{
-          width: 720,
-          maxWidth: "100%",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          borderRadius: 16,
-          border: "none",
-          background: "white",
-          position: "relative",
-          zIndex: 1,
-        }}
-        bodyStyle={{
-          padding: 0,
-        }}
-      >
-        {/* Header Section */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            padding: "32px 32px 24px",
-            borderRadius: "16px 16px 0 0",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 48,
-              marginBottom: 12,
-            }}
-          >
-            🗳️
+  if (inviteError && !vote) {
+    return shell(
+      <div className="pv-step">
+        <div className="pv-error" role="alert">
+          <span className="pv-error-icon" aria-hidden>
+            ⚠
+          </span>
+          <div style={{ flex: 1 }}>
+            <strong style={{ display: "block", marginBottom: 6 }}>
+              Unable to open this link
+            </strong>
+            {inviteError}
           </div>
-          <Title
-            level={2}
-            style={{
-              color: "white",
-              marginBottom: 8,
-              fontWeight: 600,
-            }}
+        </div>
+      </div>
+    );
+  }
+
+  if (vote && voter && hasSubmitted) {
+    return shell(
+      <div className="pv-step pv-success">
+        <RemoteSuccessLottie />
+        <h2 className="pv-success-title">Vote recorded</h2>
+        <p className="pv-success-msg">
+          Thank you,{" "}
+          <strong>
+            {voter.firstName} {voter.lastName}
+          </strong>{" "}
+          ({voter.employeeId}). Your choices for{" "}
+          <strong>{vote.name}</strong> were saved securely. You can close this
+          tab.
+        </p>
+      </div>
+    );
+  }
+
+  return shell(
+    <div className="pv-step">
+      {errorText && (
+        <div className="pv-error" role="alert">
+          <span className="pv-error-icon" aria-hidden>
+            ⚠
+          </span>
+          <span style={{ flex: 1 }}>{errorText}</span>
+          <button
+            type="button"
+            className="pv-dismiss"
+            aria-label="Dismiss"
+            onClick={() => setErrorText(null)}
           >
-            Employee Voting Portal
-          </Title>
-          {!inviteError && !hasSubmitted && (
-            <Text
-              style={{ color: "rgba(255, 255, 255, 0.9)", fontSize: 15 }}
-            >
-              Your voice matters. Cast your vote below.
-            </Text>
-          )}
+            ×
+          </button>
         </div>
+      )}
 
-        {/* Body Section */}
-        <div style={{ padding: 32 }}>
-          {/* Error State */}
-          {inviteError && (
-            <Alert
-              type="error"
-              showIcon
-              style={{
-                borderRadius: 8,
-                border: "1px solid #ffa39e",
-              }}
-              message="Unable to Access Voting Link"
-              description={inviteError}
-            />
-          )}
+      {isNominee && (
+        <div className="pv-nominee-banner">
+          <strong>🎉 You&apos;re a nominee in this poll</strong>
+          <span>
+            Here is everyone on the ballot for <strong>{vote.name}</strong>:
+          </span>
+          <ul className="pv-nominee-list-mini">
+            {(vote.nominees || []).map((n) => (
+              <li key={n._id}>
+                <span style={{ fontWeight: 600, color: "var(--pv-text)" }}>
+                  {n.firstName} {n.lastName}
+                </span>
+                <span style={{ color: "var(--pv-muted)", fontSize: "0.75rem" }}>
+                  {n.employeeId}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-          {/* Success State */}
-          {!inviteError && vote && voter && hasSubmitted && (
-            <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <div
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  background:
-                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 24px",
-                  boxShadow: "0 10px 25px rgba(102, 126, 234, 0.3)",
-                }}
-              >
-                <CheckCircleOutlined
-                  style={{ fontSize: 40, color: "white" }}
-                />
-              </div>
-
-              <Title
-                level={3}
-                style={{ marginBottom: 12, color: "#1f2937" }}
-              >
-                Vote Successfully Recorded!
-              </Title>
-
-              <Text
-                style={{
-                  fontSize: 16,
-                  color: "#6b7280",
-                  display: "block",
-                  marginBottom: 24,
-                }}
-              >
-                Thank you,{" "}
-                <strong style={{ color: "#1f2937" }}>
-                  {voter.firstName} {voter.lastName}
-                </strong>{" "}
-                ({voter.employeeId})
-              </Text>
-
-              <div
-                style={{
-                  background: "#f9fafb",
-                  padding: 16,
-                  borderRadius: 8,
-                  marginBottom: 24,
-                }}
-              >
-                <Text style={{ fontSize: 14, color: "#6b7280" }}>
-                  Your vote for{" "}
-                  <strong style={{ color: "#1f2937" }}>
-                    {vote.name}
-                  </strong>{" "}
-                  has been securely recorded.
-                </Text>
-              </div>
-
-              <Text type="secondary" style={{ fontSize: 14 }}>
-                You may now close this window or return to your work.
-              </Text>
+      <div className="pv-meta">
+        <div className="pv-meta-row">
+          <span className="pv-meta-icon" aria-hidden>
+            🏆
+          </span>
+          <div>
+            <strong>Poll</strong>
+            <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
+              {vote.name}
             </div>
-          )}
-
-          {/* Voting Form */}
-          {!inviteError && vote && voter && !hasSubmitted && (
-            <>
-              {/* Nominee extra info & list – only if this voter is a nominee */}
-              {isNominee && (
-                <div
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #ecfeff 0%, #e0f2fe 100%)",
-                    borderRadius: 12,
-                    padding: 16,
-                    marginBottom: 24,
-                    border: "1px solid #bfdbfe",
-                  }}
-                >
-                  <Text
-                    strong
-                    style={{
-                      display: "block",
-                      marginBottom: 8,
-                      color: "#1d4ed8",
-                      fontSize: 14,
-                    }}
-                  >
-                    🎉 You are one of the nominees in this voting cycle.
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: "#1f2937",
-                      display: "block",
-                      marginBottom: 8,
-                    }}
-                  >
-                    Here is the full nominee list for{" "}
-                    <strong>{vote.name}</strong>:
-                  </Text>
-
-                  <div
-                    style={{
-                      maxHeight: 180,
-                      overflowY: "auto",
-                      background: "white",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      border: "1px solid #dbeafe",
-                    }}
-                  >
-                    <ul
-                      style={{
-                        listStyle: "none",
-                        padding: 0,
-                        margin: 0,
-                      }}
-                    >
-                      {(vote.nominees || []).map((n) => (
-                        <li
-                          key={n._id}
-                          style={{
-                            padding: "6px 0",
-                            borderBottom: "1px solid #f3f4f6",
-                            fontSize: 13,
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: "#111827",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {n.firstName} {n.lastName}
-                          </span>
-                          <span
-                            style={{
-                              color: "#6b7280",
-                              fontSize: 12,
-                            }}
-                          >
-                            ({n.employeeId})
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* Voter Information Card */}
-              <div
-                style={{
-                  background:
-                    "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)",
-                  padding: 20,
-                  borderRadius: 12,
-                  marginBottom: 24,
-                  border: "1px solid #d1d5db",
-                }}
-              >
-                <Space
-                  direction="vertical"
-                  size={8}
-                  style={{ width: "100%" }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <TrophyOutlined
-                      style={{ color: "#764ba2", fontSize: 16 }}
-                    />
-                    <Text strong style={{ color: "#374151" }}>
-                      Poll:
-                    </Text>
-                    <Text style={{ color: "#1f2937" }}>
-                      {vote.name}
-                    </Text>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <UserOutlined
-                      style={{ color: "#667eea", fontSize: 16 }}
-                    />
-                    <Text strong style={{ color: "#374151" }}>
-                      Voter:
-                    </Text>
-                    <Text style={{ color: "#1f2937" }}>
-                      {voter.firstName} {voter.lastName} (
-                      {voter.employeeId})
-                    </Text>
-                  </div>
-
-                  <Divider style={{ margin: "12px 0" }} />
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 8,
-                    }}
-                  >
-                    <InfoCircleOutlined
-                      style={{
-                        color: "#6b7280",
-                        fontSize: 16,
-                        marginTop: 2,
-                      }}
-                    />
-                    <Text style={{ fontSize: 13, color: "#6b7280" }}>
-                      Select up to{" "}
-                      <strong style={{ color: "#374151" }}>
-                        {vote.maxVotesPerVoter}
-                      </strong>{" "}
-                      nominee
-                      {vote.maxVotesPerVoter > 1 ? "s" : ""}. Each
-                      vote awards{" "}
-                      <strong style={{ color: "#374151" }}>
-                        {vote.votePoints}
-                      </strong>{" "}
-                      point
-                      {vote.votePoints > 1 ? "s" : ""}.
-                    </Text>
-                  </div>
-                </Space>
-              </div>
-
-              {/* Nominees Section */}
-              <div style={{ marginBottom: 24 }}>
-                <Text
-                  strong
-                  style={{
-                    fontSize: 16,
-                    color: "#1f2937",
-                    display: "block",
-                    marginBottom: 12,
-                  }}
-                >
-                  Select Your Nominees
-                </Text>
-
-                <Checkbox.Group
-                  style={{ width: "100%" }}
-                  value={selectedNomineeIds}
-                  onChange={handleNomineeChange}
-                >
-                  <div
-                    style={{
-                      maxHeight: 320,
-                      overflowY: "auto",
-                      padding: "4px 8px 4px 0",
-                    }}
-                  >
-                    {vote.nominees && vote.nominees.length > 0 ? (
-                      vote.nominees.map((nominee) => (
-                        <div
-                          key={nominee._id}
-                          style={{
-                            padding: "14px 16px",
-                            marginBottom: 8,
-                            borderRadius: 8,
-                            border: selectedNomineeIds.includes(
-                              nominee._id
-                            )
-                              ? "2px solid #667eea"
-                              : "1px solid #e5e7eb",
-                            background: selectedNomineeIds.includes(
-                              nominee._id
-                            )
-                              ? "#f0f4ff"
-                              : "white",
-                            transition: "all 0.2s ease",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => {
-                            const newSelection =
-                              selectedNomineeIds.includes(
-                                nominee._id
-                              )
-                                ? selectedNomineeIds.filter(
-                                    (id) => id !== nominee._id
-                                  )
-                                : [
-                                    ...selectedNomineeIds,
-                                    nominee._id,
-                                  ];
-                            handleNomineeChange(newSelection);
-                          }}
-                        >
-                          <Checkbox
-                            value={nominee._id}
-                            style={{ width: "100%" }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 15,
-                                color: "#1f2937",
-                                fontWeight: 500,
-                              }}
-                            >
-                              {nominee.firstName}{" "}
-                              {nominee.lastName}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 13,
-                                color: "#6b7280",
-                                marginLeft: 8,
-                              }}
-                            >
-                              ({nominee.employeeId})
-                            </span>
-                          </Checkbox>
-                        </div>
-                      ))
-                    ) : (
-                      <div
-                        style={{
-                          textAlign: "center",
-                          padding: 32,
-                        }}
-                      >
-                        <Text type="secondary">
-                          No nominees available for this poll.
-                        </Text>
-                      </div>
-                    )}
-                  </div>
-                </Checkbox.Group>
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="primary"
-                block
-                size="large"
-                onClick={handleSubmit}
-                loading={submitting}
-                disabled={selectedNomineeIds.length === 0}
-                style={{
-                  height: 48,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  borderRadius: 8,
-                  background:
-                    selectedNomineeIds.length > 0
-                      ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                      : undefined,
-                  border: "none",
-                  boxShadow:
-                    selectedNomineeIds.length > 0
-                      ? "0 4px 12px rgba(102, 126, 234, 0.4)"
-                      : undefined,
-                }}
-              >
-                {submitting ? "Submitting..." : "Submit Vote"}
-              </Button>
-
-              {selectedNomineeIds.length > 0 && (
-                <Text
-                  type="secondary"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    marginTop: 12,
-                    fontSize: 13,
-                  }}
-                >
-                  {selectedNomineeIds.length} of{" "}
-                  {vote.maxVotesPerVoter} nominee
-                  {vote.maxVotesPerVoter > 1 ? "s" : ""} selected
-                </Text>
-              )}
-            </>
-          )}
+          </div>
         </div>
-      </Card>
+        <div className="pv-meta-row">
+          <span className="pv-meta-icon" aria-hidden>
+            👤
+          </span>
+          <div>
+            <strong>Voter</strong>
+            <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
+              {voter.firstName} {voter.lastName}{" "}
+              <span style={{ opacity: 0.85 }}>({voter.employeeId})</span>
+            </div>
+          </div>
+        </div>
+        <div className="pv-meta-row">
+          <span className="pv-meta-icon" aria-hidden>
+            ℹ️
+          </span>
+          <div>
+            <strong>Rules</strong>
+            <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
+              Select up to {maxVotes} nominee{maxVotes > 1 ? "s" : ""}. Each
+              vote awards {votePoints} point{votePoints > 1 ? "s" : ""}.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 className="pv-section-title">Select your nominee(s)</h2>
+      <div className="pv-nominees" role="group" aria-label="Nominees">
+        {vote.nominees && vote.nominees.length > 0 ? (
+          vote.nominees.map((nominee) => {
+            const idStr = String(nominee._id);
+            const selected = selectedSet.has(idStr);
+            const hue = hueFromString(
+              `${nominee.employeeId}-${nominee.firstName}`
+            );
+            return (
+              <button
+                key={nominee._id}
+                type="button"
+                className={`pv-nominee${selected ? " pv-nominee--selected" : ""}`}
+                onClick={() => toggleNominee(nominee._id)}
+                aria-pressed={selected}
+              >
+                <div
+                  className="pv-avatar"
+                  style={{
+                    background: `linear-gradient(145deg, hsl(${hue}, 62%, 48%), hsl(${(hue + 40) % 360}, 55%, 42%))`,
+                  }}
+                >
+                  {initials(nominee.firstName, nominee.lastName)}
+                </div>
+                <div className="pv-nominee-text">
+                  <p className="pv-nominee-name">
+                    {nominee.firstName} {nominee.lastName}
+                  </p>
+                  <p className="pv-nominee-id">ID {nominee.employeeId}</p>
+                </div>
+                <span className="pv-check" aria-hidden>
+                  {selected ? "✓" : ""}
+                </span>
+              </button>
+            );
+          })
+        ) : (
+          <div className="pv-empty-nominees">No nominees in this poll.</div>
+        )}
+      </div>
+
+      <p className="pv-counter">
+        {selectedNomineeIds.length} of {maxVotes} nominee
+        {maxVotes > 1 ? "s" : ""} selected
+      </p>
+
+      <button
+        type="button"
+        className="pv-btn"
+        onClick={handleSubmit}
+        disabled={submitting || selectedNomineeIds.length === 0}
+      >
+        {submitting ? "Submitting…" : "Submit vote"}
+      </button>
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
 import axios from "axios";
 import API_BASE_URL from "../config/api";
 import { useNavigate } from "react-router-dom";
+import AppBrandLogo, { BRAND_NAME } from "../components/AppBrandLogo";
 
 const { Title, Text } = Typography;
 
@@ -142,22 +143,25 @@ const RegisterPage = () => {
             textAlign: "center",
           }}
         >
-          {/* Logo/Icon */}
+          {/* Official brand logo */}
           <div
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: "50%",
-              background: "rgba(255, 255, 255, 0.2)",
-              backdropFilter: "blur(10px)",
+              width: 112,
+              height: 112,
+              borderRadius: 20,
+              background: "rgba(255, 255, 255, 0.98)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              border: "2px solid rgba(255, 255, 255, 0.3)",
+              padding: 12,
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
             }}
           >
-            <UserAddOutlined style={{ fontSize: 36, color: "white" }} />
+            <AppBrandLogo
+              alt={BRAND_NAME}
+              style={{ width: "100%", height: "100%" }}
+            />
           </div>
 
           <Title

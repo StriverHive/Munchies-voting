@@ -1,100 +1,92 @@
-// client/src/pages/PublicVotePage.jsx
-import React, { useState } from "react";
-import {
-  Card,
-  Typography,
-  Form,
-  Input,
-  Button,
-  Checkbox,
-  Space,
-  Alert,
-} from "antd";
+// client/src/pages/PublicVotePage.jsx — immersive mobile-first voting UI
+import React, { useState, useCallback, useMemo } from "react";
 import api from "../api";
 import { useParams } from "react-router-dom";
-
-const { Title, Text } = Typography;
-const { Group: CheckboxGroup } = Checkbox;
+import {
+  LogoHeader,
+  RemoteSuccessLottie,
+  initials,
+  hueFromString,
+} from "../components/voting/VotingUiShared";
+import AppBrandLogo, { BRAND_NAME } from "../components/AppBrandLogo";
+import "./PublicVotePage.css";
 
 const PublicVotePage = () => {
   const { voteId } = useParams();
 
-  const [step, setStep] = useState("enterEmployeeId"); // 'enterEmployeeId' | 'voting' | 'done'
+  const [step, setStep] = useState("enterEmployeeId");
   const [checking, setChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [voteData, setVoteData] = useState(null);
   const [voter, setVoter] = useState(null);
   const [selectedNomineeIds, setSelectedNomineeIds] = useState([]);
+  const [employeeIdInput, setEmployeeIdInput] = useState("");
+  const [errorText, setErrorText] = useState(null);
 
-  const [form] = Form.useForm();
-  const [errorText, setErrorText] = useState(null); // ONLY inline error panel
-
-  const handleCheckEmployee = async (values) => {
+  const handleCheckEmployee = async (e) => {
+    e?.preventDefault?.();
+    const raw = employeeIdInput.trim();
+    if (raw.length < 2) {
+      setErrorText("Please enter your employee ID (at least 2 characters).");
+      return;
+    }
     try {
       setChecking(true);
       setErrorText(null);
 
-      const res = await api.post(
-        `/votes/${voteId}/check-employee`,
-        {
-          employeeId: values.employeeId,
-        }
-      );
+      const res = await api.post(`/votes/${voteId}/check-employee`, {
+        employeeId: raw,
+      });
 
       setVoteData(res.data.vote);
       setVoter(res.data.voter);
       setSelectedNomineeIds([]);
       setStep("voting");
-      // No toast, the UI changing to voting page is enough feedback
     } catch (error) {
       console.error("Check employee error:", error);
       const errorMessage =
         error.response?.data?.message ||
         "Unable to verify your employee ID. Please try again.";
-
-      // ONLY inline panel
       setErrorText(errorMessage);
     } finally {
       setChecking(false);
     }
   };
 
-  const handleNomineeChange = (values) => {
-    if (!voteData) {
-      setSelectedNomineeIds(values);
-      return;
-    }
+  const maxVotes = voteData?.maxVotesPerVoter || 1;
 
-    const max = voteData.maxVotesPerVoter || 1;
-    if (values.length > max) {
-      const msg = `You can select up to ${max} nominee${
-        max > 1 ? "s" : ""
-      } only`;
-      // Show as inline error
-      setErrorText(msg);
-      return;
-    }
-
-    // Clear old error if user is now within limit
-    if (errorText) {
-      setErrorText(null);
-    }
-
-    setSelectedNomineeIds(values);
-  };
+  const toggleNominee = useCallback(
+    (id) => {
+      const sid = String(id);
+      setSelectedNomineeIds((prev) => {
+        const has = prev.some((x) => String(x) === sid);
+        if (has) {
+          setErrorText(null);
+          return prev.filter((x) => String(x) !== sid);
+        }
+        if (prev.length >= maxVotes) {
+          setErrorText(
+            `You can select up to ${maxVotes} nominee${maxVotes > 1 ? "s" : ""} only.`
+          );
+          return prev;
+        }
+        setErrorText(null);
+        return [...prev, id];
+      });
+    },
+    [maxVotes]
+  );
 
   const handleSubmitVote = async () => {
     if (!voteData || !voter) {
-      const msg =
-        "Voting session is not ready. Please refresh the page and try again.";
-      setErrorText(msg);
+      setErrorText(
+        "Voting session is not ready. Please refresh the page and try again."
+      );
       return;
     }
-
     if (!selectedNomineeIds || selectedNomineeIds.length === 0) {
-      const msg = "Please select at least one nominee";
-      setErrorText(msg);
+      setErrorText("Please select at least one nominee.");
       return;
     }
 
@@ -102,15 +94,11 @@ const PublicVotePage = () => {
       setSubmitting(true);
       setErrorText(null);
 
-      await api.post(
-        `/votes/${voteId}/cast`,
-        {
-          employeeId: voter.employeeId,
-          nomineeIds: selectedNomineeIds,
-        }
-      );
+      await api.post(`/votes/${voteId}/cast`, {
+        employeeId: voter.employeeId,
+        nomineeIds: selectedNomineeIds,
+      });
 
-      // No toast, just go to Thank You page
       setStep("done");
     } catch (error) {
       console.error("Cast vote error:", error);
@@ -123,164 +111,218 @@ const PublicVotePage = () => {
     }
   };
 
-  const renderEnterEmployeeId = () => (
-    <>
-      <Title level={3} style={{ textAlign: "center", marginBottom: 16 }}>
-        Employee Voting
-      </Title>
-      <Text
-        type="secondary"
-        style={{ display: "block", textAlign: "center", marginBottom: 16 }}
-      >
-        Please enter your Employee ID to continue.
-      </Text>
-
-      {errorText && (
-        <Alert
-          type="error"
-          message={errorText}
-          showIcon
-          closable
-          onClose={() => setErrorText(null)}
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      <Form layout="vertical" form={form} onFinish={handleCheckEmployee}>
-        <Form.Item
-          label="Employee ID"
-          name="employeeId"
-          rules={[
-            { required: true, message: "Please enter your employee ID" },
-            { min: 2, message: "Employee ID must be at least 2 characters" },
-          ]}
-        >
-          <Input placeholder="e.g. EMP-001" />
-        </Form.Item>
-
-        <Form.Item style={{ marginTop: 16 }}>
-          <Button
-            type="primary"
-            htmlType="submit"
-            block
-            loading={checking}
-          >
-            Continue
-          </Button>
-        </Form.Item>
-      </Form>
-    </>
-  );
-
-  const renderVoting = () => {
-    if (!voteData || !voter) return null;
-
-    const max = voteData.maxVotesPerVoter || 1;
-
-    return (
-      <>
-        <Title level={3} style={{ textAlign: "center", marginBottom: 8 }}>
-          {voteData.name}
-        </Title>
-
-        <Text
-          style={{ display: "block", textAlign: "center", marginBottom: 8 }}
-        >
-          Hello{" "}
-          <strong>
-            {voter.firstName} {voter.lastName}
-          </strong>{" "}
-          (ID: {voter.employeeId})
-        </Text>
-
-        <Text
-          type="secondary"
-          style={{ display: "block", textAlign: "center", marginBottom: 16 }}
-        >
-          You can select up to {max} nominee{max > 1 ? "s" : ""}.
-        </Text>
-
-        {errorText && (
-          <Alert
-            type="error"
-            message={errorText}
-            showIcon
-            closable
-            onClose={() => setErrorText(null)}
-            style={{ marginBottom: 16 }}
-          />
-        )}
-
-        <div style={{ marginBottom: 12 }}>
-          <Text strong>Nominees:</Text>
-        </div>
-
-        <CheckboxGroup
-          value={selectedNomineeIds}
-          onChange={handleNomineeChange}
-          style={{ width: "100%" }}
-        >
-          <Space direction="vertical" style={{ width: "100%" }}>
-            {voteData.nominees.map((nominee) => (
-              <Checkbox
-                key={nominee._id}
-                value={nominee._id}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 4,
-                  border: "1px solid #f0f0f0",
-                }}
-              >
-                {nominee.firstName} {nominee.lastName} (
-                {nominee.employeeId})
-              </Checkbox>
-            ))}
-          </Space>
-        </CheckboxGroup>
-
-        <Button
-          type="primary"
-          block
-          style={{ marginTop: 24 }}
-          onClick={handleSubmitVote}
-          loading={submitting}
-        >
-          Submit Vote
-        </Button>
-      </>
-    );
-  };
-
-  const renderDone = () => (
-    <>
-      <Title level={3} style={{ textAlign: "center", marginBottom: 16 }}>
-        Thank You!
-      </Title>
-      <Text
-        type="secondary"
-        style={{ display: "block", textAlign: "center", marginBottom: 16 }}
-      >
-        Your vote has been submitted successfully. You cannot vote again
-        in this poll.
-      </Text>
-    </>
+  const selectedSet = useMemo(
+    () => new Set(selectedNomineeIds.map((x) => String(x))),
+    [selectedNomineeIds]
   );
 
   return (
-    <Card
-      style={{
-        width: "100%",
-        maxWidth: 480,
-        margin: "0 auto",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      }}
-      bodyStyle={{ padding: 16 }}
-    >
-      {step === "enterEmployeeId" && renderEnterEmployeeId()}
-      {step === "voting" && renderVoting()}
-      {step === "done" && renderDone()}
-    </Card>
+    <div className="pv-root">
+      <div className="pv-bg" aria-hidden />
+      <div className="pv-orbs" aria-hidden>
+        <span />
+        <span />
+        <span />
+      </div>
+
+      <div className="pv-inner">
+        <header className="pv-header">
+          <p className="pv-kicker">Secure ballot</p>
+          <LogoHeader />
+          <h1 className="pv-title">Employee Voting Portal</h1>
+          <p className="pv-subtitle">
+            Your voice matters. Verify your ID, then cast your vote in a few
+            taps — optimized for your phone.
+          </p>
+        </header>
+
+        <div className="pv-card">
+          {step === "enterEmployeeId" && (
+            <div className="pv-step" key="id">
+              {errorText && (
+                <div className="pv-error" role="alert">
+                  <span className="pv-error-icon" aria-hidden>
+                    ⚠
+                  </span>
+                  <span style={{ flex: 1 }}>{errorText}</span>
+                  <button
+                    type="button"
+                    className="pv-dismiss"
+                    aria-label="Dismiss"
+                    onClick={() => setErrorText(null)}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={handleCheckEmployee}>
+                <label className="pv-label" htmlFor="pv-employee-id">
+                  Employee ID
+                </label>
+                <input
+                  id="pv-employee-id"
+                  className="pv-input"
+                  placeholder="e.g. 5555 or EMP-001"
+                  value={employeeIdInput}
+                  onChange={(e) => setEmployeeIdInput(e.target.value)}
+                  autoComplete="username"
+                  autoCapitalize="characters"
+                  inputMode="text"
+                  disabled={checking}
+                />
+                <button
+                  type="submit"
+                  className="pv-btn"
+                  disabled={checking}
+                >
+                  {checking ? "Verifying…" : "Continue to vote"}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {step === "voting" && voteData && voter && (
+            <div className="pv-step" key="vote">
+              {errorText && (
+                <div className="pv-error" role="alert">
+                  <span className="pv-error-icon" aria-hidden>
+                    ⚠
+                  </span>
+                  <span style={{ flex: 1 }}>{errorText}</span>
+                  <button
+                    type="button"
+                    className="pv-dismiss"
+                    aria-label="Dismiss"
+                    onClick={() => setErrorText(null)}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              <div className="pv-meta">
+                <div className="pv-meta-row">
+                  <span className="pv-meta-icon" aria-hidden>
+                    🏆
+                  </span>
+                  <div>
+                    <strong>Poll</strong>
+                    <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
+                      {voteData.name}
+                    </div>
+                  </div>
+                </div>
+                <div className="pv-meta-row">
+                  <span className="pv-meta-icon" aria-hidden>
+                    👤
+                  </span>
+                  <div>
+                    <strong>Voter</strong>
+                    <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
+                      {voter.firstName} {voter.lastName}{" "}
+                      <span style={{ opacity: 0.85 }}>
+                        ({voter.employeeId})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pv-meta-row">
+                  <span className="pv-meta-icon" aria-hidden>
+                    ℹ️
+                  </span>
+                  <div>
+                    <strong>Rules</strong>
+                    <div style={{ color: "var(--pv-muted)", marginTop: 2 }}>
+                      Select up to {maxVotes} nominee
+                      {maxVotes > 1 ? "s" : ""}. Each choice awards{" "}
+                      {voteData.votePoints || 1} point
+                      {(voteData.votePoints || 1) > 1 ? "s" : ""}.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <h2 className="pv-section-title">Select your nominee(s)</h2>
+              <div className="pv-nominees" role="group" aria-label="Nominees">
+                {(voteData.nominees || []).map((nominee) => {
+                  const idStr = String(nominee._id);
+                  const selected = selectedSet.has(idStr);
+                  const hue = hueFromString(
+                    `${nominee.employeeId}-${nominee.firstName}`
+                  );
+                  return (
+                    <button
+                      key={nominee._id}
+                      type="button"
+                      className={`pv-nominee${selected ? " pv-nominee--selected" : ""}`}
+                      onClick={() => toggleNominee(nominee._id)}
+                      aria-pressed={selected}
+                    >
+                      <div
+                        className="pv-avatar"
+                        style={{
+                          background: `linear-gradient(145deg, hsl(${hue}, 62%, 48%), hsl(${(hue + 40) % 360}, 55%, 42%))`,
+                        }}
+                      >
+                        {initials(nominee.firstName, nominee.lastName)}
+                      </div>
+                      <div className="pv-nominee-text">
+                        <p className="pv-nominee-name">
+                          {nominee.firstName} {nominee.lastName}
+                        </p>
+                        <p className="pv-nominee-id">
+                          ID {nominee.employeeId}
+                        </p>
+                      </div>
+                      <span className="pv-check" aria-hidden>
+                        {selected ? "✓" : ""}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="pv-counter">
+                {selectedNomineeIds.length} of {maxVotes} nominee
+                {maxVotes > 1 ? "s" : ""} selected
+              </p>
+
+              <button
+                type="button"
+                className="pv-btn"
+                onClick={handleSubmitVote}
+                disabled={submitting || selectedNomineeIds.length === 0}
+              >
+                {submitting ? "Submitting…" : "Submit vote"}
+              </button>
+            </div>
+          )}
+
+          {step === "done" && (
+            <div className="pv-step pv-success" key="done">
+              <RemoteSuccessLottie />
+              <h2 className="pv-success-title">Thank you!</h2>
+              <p className="pv-success-msg">
+                Your vote was recorded successfully. Thank you for
+                participating — you can close this page when you&apos;re done.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="pv-footer-brand">
+          <AppBrandLogo
+            alt=""
+            aria-hidden
+            className="pv-footer-logo"
+          />
+          <span className="pv-footer-note">
+            {BRAND_NAME} · Secure · {new Date().getFullYear()}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 };
 
