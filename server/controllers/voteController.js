@@ -6,6 +6,7 @@ const Location = require("../models/Location");
 const Employee = require("../models/Employee");
 const VoteInvite = require("../models/VoteInvite");
 const { sendEmail } = require("../utils/emailService");
+const { logEmailBatchSummary } = require("../utils/emailLog");
 const { createdByFilter, canModify } = require("../middleware/authMiddleware");
 
 // After loading a vote in a protected handler, call this; returns false if 403 was sent
@@ -1667,6 +1668,10 @@ const sendVoteInvites = async (req, res) => {
     let failureCount = 0;
     const errors = [];
 
+    console.log(
+      `[EMAIL] BATCH_START context=send-invites voteId=${vote._id} recipients=${targetVoters.length} mode=${sendMode}`
+    );
+
     for (const voter of targetVoters) {
       if (!voter.email || !String(voter.email).trim()) {
         failureCount++;
@@ -1769,10 +1774,12 @@ const sendVoteInvites = async (req, res) => {
           to: voter.email,
           subject,
           html,
+          meta: {
+            context: "send-invite",
+            voteId: String(vote._id),
+            employeeId: voter.employeeId,
+          },
         });
-        console.log(
-          `Invite sent to ${voter.email} (employeeId=${voter.employeeId}) token=${invite.token}`
-        );
         successCount++;
       } catch (err) {
         failureCount++;
@@ -1783,6 +1790,14 @@ const sendVoteInvites = async (req, res) => {
         });
       }
     }
+
+    logEmailBatchSummary("send-invites", {
+      voteId: String(vote._id),
+      total: targetVoters.length,
+      successCount,
+      failureCount,
+      errors,
+    });
 
     return res.json({
       message: "Invite emails processed for this vote",
@@ -2312,6 +2327,10 @@ const sendWinnerSummaryToNominees = async (req, res) => {
         .map((l) => String(l.winner.employeeId))
     );
 
+    console.log(
+      `[EMAIL] BATCH_START context=notify-nominees-winners voteId=${vote._id} recipients=${recipients.length}`
+    );
+
     for (const person of recipients) {
       if (!person.email || !String(person.email).trim()) {
         failureCount++;
@@ -2337,6 +2356,11 @@ const sendWinnerSummaryToNominees = async (req, res) => {
           to: person.email,
           subject,
           html,
+          meta: {
+            context: "notify-nominees-winners",
+            voteId: String(vote._id),
+            employeeId: person.employeeId,
+          },
         });
         successCount++;
       } catch (err) {
@@ -2348,6 +2372,14 @@ const sendWinnerSummaryToNominees = async (req, res) => {
         });
       }
     }
+
+    logEmailBatchSummary("notify-nominees-winners", {
+      voteId: String(vote._id),
+      total: recipients.length,
+      successCount,
+      failureCount,
+      errors,
+    });
 
     return res.json({
       message: "Winner summary emails processed for this vote (all employees)",
@@ -2540,6 +2572,10 @@ const sendWinnerSummaryToLocation = async (req, res) => {
     let failureCount = 0;
     const errors = [];
 
+    console.log(
+      `[EMAIL] BATCH_START context=notify-location-winner voteId=${vote._id} location=${locationDoc.code} recipients=${recipients.length}`
+    );
+
     for (const person of recipients) {
       if (!person.email || !String(person.email).trim()) {
         failureCount++;
@@ -2565,6 +2601,12 @@ const sendWinnerSummaryToLocation = async (req, res) => {
           to: person.email,
           subject,
           html,
+          meta: {
+            context: "notify-location-winner",
+            voteId: String(vote._id),
+            employeeId: person.employeeId,
+            locationCode: locationDoc.code,
+          },
         });
         successCount++;
       } catch (err) {
@@ -2576,6 +2618,15 @@ const sendWinnerSummaryToLocation = async (req, res) => {
         });
       }
     }
+
+    logEmailBatchSummary("notify-location-winner", {
+      voteId: String(vote._id),
+      locationLabel: `${locationDoc.code}`,
+      total: recipients.length,
+      successCount,
+      failureCount,
+      errors,
+    });
 
     return res.json({
       message: `Store winner notification processed for ${locationDoc.name} (${locationDoc.code})`,

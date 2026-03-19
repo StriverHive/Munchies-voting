@@ -31,6 +31,7 @@ You would add a small integration (e.g. `fetch` to their API) or use their offic
 | `EMAIL_SKIP_VERIFY=true` | Skip SMTP `verify()` on startup (less noise; does **not** unblock sending). |
 | `EMAIL_FORCE_SMTP_VERIFY=true` | On Render, force startup verify anyway (for debugging). |
 | `SMTP_CONNECTION_TIMEOUT_MS` | Override connection timeout (default 15000). |
+| `EMAIL_LOG_EACH_SEND=true` | Log every successful single send (`SEND_OK`). Failures are always logged. Batch jobs always log `BATCH_DONE` + failure breakdown. |
 
 ## Gmail from your laptop
 

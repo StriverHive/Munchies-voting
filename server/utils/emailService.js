@@ -1,5 +1,10 @@
 // server/utils/emailService.js
 const nodemailer = require("nodemailer");
+const {
+  logEmailSendStart,
+  logEmailSendOk,
+  logEmailSendFail,
+} = require("./emailLog");
 
 // Read config from environment with safe defaults for Gmail
 const EMAIL_HOST = process.env.EMAIL_HOST || "smtp.gmail.com";
@@ -86,8 +91,9 @@ const stripHtmlToText = (html) => {
  * @param {string} options.subject - email subject
  * @param {string} options.html - HTML content
  * @param {string} [options.text] - plain text (optional)
+ * @param {Object} [options.meta] - for logs: { context, voteId, employeeId, ... }
  */
-const sendEmail = async ({ to, subject, html, text }) => {
+const sendEmail = async ({ to, subject, html, text, meta = {} }) => {
   if (!to) throw new Error("sendEmail: 'to' is required");
   if (!subject) throw new Error("sendEmail: 'subject' is required");
   if (!html && !text) throw new Error("sendEmail: 'html' or 'text' is required");
@@ -100,7 +106,16 @@ const sendEmail = async ({ to, subject, html, text }) => {
     html,
   };
 
-  await transporter.sendMail(mailOptions);
+  logEmailSendStart(meta, to, subject);
+  const t0 = Date.now();
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logEmailSendOk(meta, to, Date.now() - t0, info);
+    return info;
+  } catch (err) {
+    logEmailSendFail(meta, to, Date.now() - t0, err);
+    throw err;
+  }
 };
 
 module.exports = {

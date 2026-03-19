@@ -25,7 +25,10 @@ const sendTestEmail = async (req, res) => {
       html: `<p>Hello,</p>
              <p>This is a <strong>test email</strong> from your Voting System backend.</p>
              <p>If you received this, Nodemailer + Gmail are working correctly ✅</p>`,
+      meta: { context: "test-email" },
     });
+
+    console.log(`[EMAIL] TEST_DONE to=${to} (check inbox / spam)`);
 
     return res.json({
       message: `Test email sent to ${to}`,
