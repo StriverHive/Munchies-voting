@@ -104,6 +104,22 @@ export function IconUsers({ className }) {
   );
 }
 
+/** Single verified voter (identity), not a group */
+export function IconUserCircle({ className }) {
+  return (
+    <svg {...iconProps} className={className}>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.75" />
+      <circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.75" />
+      <path
+        d="M6.5 18.5c0-3.1 2.46-5.5 5.5-5.5s5.5 2.4 5.5 5.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function IconAward({ className }) {
   return (
     <svg {...iconProps} className={className}>

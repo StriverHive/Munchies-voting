@@ -14,7 +14,7 @@ import {
   IconLock,
   IconClock,
   IconIdCard,
-  IconUsers,
+  IconUserCircle,
   IconAward,
   IconCheckCircle,
 } from "../components/voting/BallotIcons";
@@ -329,7 +329,7 @@ const PublicVotePage = () => {
                   </div>
                   <div className="ballot-receipt-row">
                     <span className="ballot-receipt-icon">
-                      <IconUsers />
+                      <IconUserCircle />
                     </span>
                     <div>
                       <strong>Verified voter</strong>

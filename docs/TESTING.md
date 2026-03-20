@@ -57,6 +57,15 @@ Playwright specs under `tests/e2e/specs/`. Config: `tests/e2e/playwright.config.
 
 Checklist and optional DAST notes — see `tests/security/README.md`. Run `npm audit` on `server` and `client` regularly.
 
+## Public ballot (real devices)
+
+Before sign-off, manually smoke the voting UI on:
+
+- **iPhone Safari** — verification step: input + **Continue** visible without excessive scroll; keyboard does not hide the primary button; sticky submit + safe-area on ballot step.
+- **Android Chrome** — same checks.
+
+Brand colors for the ballot shell are sampled from `client/public/munchies-logo.png` (see comment in `PublicVotePage.css`).
+
 ## Contract tests
 
 Executable contracts live in `server/tests/api/`. See `tests/contract/README.md`.

@@ -2,12 +2,14 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap");
 
+/* Brand tokens sampled from client/public/munchies-logo.png (opaque pixels; 2025 audit) */
 .ballot-root {
-  --ballot-ink: #0f1e46;
-  --ballot-navy: #162b67;
-  --ballot-pink: #e8487b;
-  --ballot-pink-dark: #c73865;
-  --ballot-pink-tint: #fff4f8;
+  /* Darkest navy: ~30th percentile of logo navy pixels */
+  --ballot-ink: #062c69;
+  --ballot-navy: #093981;
+  --ballot-pink: #ed088b;
+  --ballot-pink-dark: #b8076f;
+  --ballot-pink-tint: #fff5f9;
   --ballot-surface: #ffffff;
   --ballot-surface-alt: #f7f8fc;
   --ballot-border: #e7eaf2;
@@ -27,6 +29,8 @@
   color: var(--ballot-text);
   -webkit-font-smoothing: antialiased;
   background: var(--ballot-ink);
+  /* When keyboard/sticky bar overlap focused fields on mobile */
+  scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .ballot-bg {
@@ -47,11 +51,11 @@
   right: -12%;
   background: radial-gradient(
     circle,
-    rgba(232, 72, 123, 0.14) 0%,
-    rgba(232, 72, 123, 0.04) 42%,
-    transparent 70%
+    rgba(237, 8, 139, 0.085) 0%,
+    rgba(237, 8, 139, 0.028) 45%,
+    transparent 72%
   );
-  animation: ballot-bloom-drift 28s ease-in-out infinite;
+  animation: ballot-bloom-drift 48s ease-in-out infinite;
 }
 
 .ballot-bg::after {
@@ -77,7 +81,7 @@
     transform: translate(0, 0) scale(1);
   }
   50% {
-    transform: translate(-12px, 8px) scale(1.03);
+    transform: translate(-5px, 4px) scale(1.008);
   }
 }
 
@@ -189,6 +193,53 @@
 .ballot-chip svg {
   flex-shrink: 0;
   opacity: 0.9;
+}
+
+/* Verification on small phones: pull form higher in first viewport */
+@media (max-width: 899px) {
+  .ballot-root--verify-compact .ballot-shell {
+    gap: 14px;
+    padding-top: clamp(12px, 3vw, 20px);
+  }
+
+  .ballot-root--verify-compact .ballot-logo-wrap {
+    margin-bottom: 10px;
+  }
+
+  .ballot-root--verify-compact .ballot-logo {
+    height: clamp(36px, 8vw, 44px);
+  }
+
+  .ballot-root--verify-compact .ballot-eyebrow {
+    margin-bottom: 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+  }
+
+  .ballot-root--verify-compact .ballot-poll-title {
+    font-size: clamp(1.35rem, 6.5vw, 1.65rem);
+    margin-bottom: 6px;
+    line-height: 1.12;
+  }
+
+  /* Subtitle duplicates the form intent; hide on verify-only to save vertical space */
+  .ballot-root--verify-compact .ballot-context-desc {
+    display: none;
+  }
+
+  .ballot-root--verify-compact .ballot-trust-chips {
+    gap: 6px;
+    margin-bottom: 0;
+  }
+
+  .ballot-root--verify-compact .ballot-chip {
+    padding: 4px 9px;
+    font-size: 0.68rem;
+  }
+
+  .ballot-root--verify-compact .ballot-step {
+    padding-top: clamp(14px, 3vw, 20px);
+  }
 }
 
 .ballot-main {
@@ -316,12 +367,12 @@
   border-radius: var(--ballot-radius-sm);
   cursor: pointer;
   transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
-  box-shadow: 0 4px 14px rgba(232, 72, 123, 0.35);
+  box-shadow: 0 4px 14px rgba(237, 8, 139, 0.32);
 }
 
 .ballot-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(232, 72, 123, 0.4);
+  box-shadow: 0 6px 20px rgba(237, 8, 139, 0.38);
 }
 
 .ballot-btn:active:not(:disabled) {
@@ -467,7 +518,7 @@
   background: var(--ballot-pink-tint);
   border-color: var(--ballot-navy);
   box-shadow: 0 0 0 1px var(--ballot-navy),
-    0 0 0 4px rgba(232, 72, 123, 0.12);
+    0 0 0 4px rgba(237, 8, 139, 0.1);
 }
 
 .ballot-avatar {
@@ -772,6 +823,10 @@
   .ballot-bg::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .ballot-bg::before {
+    transform: none !important;
   }
 
   .ballot-nominee:active {
