@@ -152,22 +152,51 @@ const InviteVotePage = () => {
       ? `Each selection awards ${votePoints} point${votePoints > 1 ? "s" : ""}.`
       : `Up to ${maxVotes} nominees. Each vote awards ${votePoints} point${votePoints > 1 ? "s" : ""}.`;
 
-  const contextDesc = () => {
-    if (hasSubmitted && vote && voter) {
-      return "Your vote has been recorded securely.";
-    }
-    if (inviteError && !vote) {
-      return "This link may be invalid or expired.";
-    }
-    return "You’re verified — complete your ballot below. Your vote is final once submitted.";
-  };
-
   const pollTitle =
     vote?.name ||
     (inviteError && !vote ? "Ballot unavailable" : "Private ballot");
 
+  const ballotActive =
+    Boolean(vote && voter && !hasSubmitted && !loading);
+
+  const renderContextCopy = () => {
+    if (loading) {
+      return (
+        <p className="ballot-context-desc ballot-context-desc--sub">
+          Preparing your secure ballot…
+        </p>
+      );
+    }
+    if (hasSubmitted && vote && voter) {
+      return (
+        <p className="ballot-context-desc">
+          Your vote has been recorded securely.
+        </p>
+      );
+    }
+    if (inviteError && !vote) {
+      return (
+        <p className="ballot-context-desc">
+          This link may be invalid or expired.
+        </p>
+      );
+    }
+    return (
+      <>
+        <p className="ballot-context-desc ballot-context-desc--lead">
+          You&apos;re verified. Complete your ballot below.
+        </p>
+        <p className="ballot-context-desc ballot-context-desc--sub">
+          Your vote is final once submitted.
+        </p>
+      </>
+    );
+  };
+
   return (
-    <div className="ballot-root">
+    <div
+      className={`ballot-root${ballotActive ? " ballot-root--ballot-active" : ""}`}
+    >
       <div className="ballot-bg" aria-hidden />
       <div className="ballot-vignette" aria-hidden />
 
@@ -183,7 +212,7 @@ const InviteVotePage = () => {
           ) : (
             <h1 className="ballot-poll-title">{pollTitle}</h1>
           )}
-          <p className="ballot-context-desc">{contextDesc()}</p>
+          {renderContextCopy()}
           <div className="ballot-trust-chips">
             <span className="ballot-chip">
               <IconLock />
@@ -388,15 +417,20 @@ const InviteVotePage = () => {
       {!loading && vote && voter && !hasSubmitted && (
         <div className="ballot-sticky-actions">
           <div className="ballot-sticky-inner">
-            <div className="ballot-sticky-meta">
-              {selectedNomineeIds.length} of {maxVotes} selected
-              {maxVotes > 1 ? " nominees" : " nominee"}
-            </div>
+            <span className="ballot-sr-only" aria-live="polite">
+              {selectedNomineeIds.length} of {maxVotes} nominee
+              {maxVotes > 1 ? "s" : ""} selected
+            </span>
             <button
               type="button"
               className="ballot-btn"
               onClick={handleSubmit}
               disabled={submitting || selectedNomineeIds.length === 0}
+              aria-label={
+                submitting
+                  ? "Submitting vote"
+                  : `Submit vote, ${selectedNomineeIds.length} of ${maxVotes} selected`
+              }
             >
               {submitting ? "Submitting…" : "Submit vote"}
             </button>
@@ -404,11 +438,13 @@ const InviteVotePage = () => {
         </div>
       )}
 
-      <div className="ballot-footer-brand">
-        <AppBrandLogo alt="" aria-hidden className="ballot-footer-logo" />
-        <span className="ballot-footer-note">
-          {BRAND_NAME} · Secure · {new Date().getFullYear()}
-        </span>
+      <div className="ballot-footer-wrap">
+        <div className="ballot-footer-brand">
+          <AppBrandLogo alt="" aria-hidden className="ballot-footer-logo" />
+          <span className="ballot-footer-note">
+            {BRAND_NAME} · Secure · {new Date().getFullYear()}
+          </span>
+        </div>
       </div>
     </div>
   );

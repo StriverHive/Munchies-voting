@@ -167,22 +167,55 @@ const PublicVotePage = () => {
       ? "Select 1 nominee"
       : `Select up to ${maxVotes} nominees`;
 
-  const contextDesc = () => {
-    if (step === "done") {
-      return "Your vote has been recorded securely.";
-    }
-    if (step === "voting") {
-      return "Review your ballot and submit when ready. Your vote is final once submitted.";
-    }
-    return "Verify your employee ID to continue.";
-  };
-
   const pollTitle =
     pollSummary?.name ||
     (pollError ? "Ballot unavailable" : "Employee ballot");
 
+  const verifyCompact =
+    pollOpen &&
+    step === "enterEmployeeId" &&
+    !pollLoading &&
+    !pollError;
+
+  const ballotActive =
+    pollOpen &&
+    step === "voting" &&
+    voteData &&
+    voter &&
+    !pollLoading &&
+    !pollError;
+
+  const renderContextCopy = () => {
+    if (step === "done") {
+      return (
+        <p className="ballot-context-desc">
+          Your vote has been recorded securely.
+        </p>
+      );
+    }
+    if (step === "voting") {
+      return (
+        <>
+          <p className="ballot-context-desc ballot-context-desc--lead">
+            Review your ballot below.
+          </p>
+          <p className="ballot-context-desc ballot-context-desc--sub">
+            Your vote is final once submitted.
+          </p>
+        </>
+      );
+    }
+    return (
+      <p className="ballot-context-desc">
+        Verify your employee ID to continue.
+      </p>
+    );
+  };
+
   return (
-    <div className="ballot-root">
+    <div
+      className={`ballot-root${verifyCompact ? " ballot-root--verify-compact" : ""}${ballotActive ? " ballot-root--ballot-active" : ""}`}
+    >
       <div className="ballot-bg" aria-hidden />
       <div className="ballot-vignette" aria-hidden />
 
@@ -198,7 +231,7 @@ const PublicVotePage = () => {
           ) : (
             <h1 className="ballot-poll-title">{pollTitle}</h1>
           )}
-          <p className="ballot-context-desc">{contextDesc()}</p>
+          {renderContextCopy()}
           <div className="ballot-trust-chips">
             <span className="ballot-chip">
               <IconLock />
@@ -432,15 +465,20 @@ const PublicVotePage = () => {
       {!pollLoading && !pollError && pollOpen && step === "voting" && voteData && voter && (
         <div className="ballot-sticky-actions">
           <div className="ballot-sticky-inner">
-            <div className="ballot-sticky-meta">
-              {selectedNomineeIds.length} of {maxVotes} selected
-              {maxVotes > 1 ? " nominees" : " nominee"}
-            </div>
+            <span className="ballot-sr-only" aria-live="polite">
+              {selectedNomineeIds.length} of {maxVotes} nominee
+              {maxVotes > 1 ? "s" : ""} selected
+            </span>
             <button
               type="button"
               className="ballot-btn"
               onClick={handleSubmitVote}
               disabled={submitting || selectedNomineeIds.length === 0}
+              aria-label={
+                submitting
+                  ? "Submitting vote"
+                  : `Submit vote, ${selectedNomineeIds.length} of ${maxVotes} selected`
+              }
             >
               {submitting ? "Submitting…" : "Submit vote"}
             </button>
@@ -448,11 +486,13 @@ const PublicVotePage = () => {
         </div>
       )}
 
-      <div className="ballot-footer-brand">
-        <AppBrandLogo alt="" aria-hidden className="ballot-footer-logo" />
-        <span className="ballot-footer-note">
-          {BRAND_NAME} · Secure · {new Date().getFullYear()}
-        </span>
+      <div className="ballot-footer-wrap">
+        <div className="ballot-footer-brand">
+          <AppBrandLogo alt="" aria-hidden className="ballot-footer-logo" />
+          <span className="ballot-footer-note">
+            {BRAND_NAME} · Secure · {new Date().getFullYear()}
+          </span>
+        </div>
       </div>
     </div>
   );
